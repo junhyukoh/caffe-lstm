@@ -403,6 +403,13 @@ class SigmoidLayer : public NeuronLayer<Dtype> {
     return LayerParameter_LayerType_SIGMOID;
   }
 
+  virtual void Forward_cpu(int N, const Dtype* bottom, Dtype* top);
+  virtual void Backward_cpu(int N, const Dtype* top_data,
+      const Dtype* top_diff, Dtype* bottom_diff);
+  virtual void Forward_gpu(int N, const Dtype* bottom, Dtype* top);
+  virtual void Backward_gpu(int N, const Dtype* top_data,
+      const Dtype* top_diff, Dtype* bottom_diff);
+
  protected:
   /**
    * @param bottom input Blob vector (length 1)
@@ -486,6 +493,13 @@ class TanHLayer : public NeuronLayer<Dtype> {
   virtual inline LayerParameter_LayerType type() const {
     return LayerParameter_LayerType_TANH;
   }
+
+  virtual void Forward_cpu(int N, const Dtype* bottom, Dtype* top);
+  virtual void Backward_cpu(int N, const Dtype* top_data,
+      const Dtype* top_diff, Dtype* bottom_diff);
+  virtual void Forward_gpu(int N, const Dtype* bottom, Dtype* top);
+  virtual void Backward_gpu(int N, const Dtype* top_data,
+      const Dtype* top_diff, Dtype* bottom_diff);
 
  protected:
   /**

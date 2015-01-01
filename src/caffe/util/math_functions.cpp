@@ -216,6 +216,22 @@ void caffe_abs<double>(const int n, const double* a, double* y) {
     vdAbs(n, a, y);
 }
 
+template <>
+void caffe_bound(const int N, const float* a, const float min, 
+    const float max, float* y) {
+  for (int i = 0; i < N; ++i) {
+    y[i] = std::min(std::max(a[i], min), max);
+  }
+}
+
+template <>
+void caffe_bound(const int N, const double* a, const double min, 
+    const double max, double* y) {
+  for (int i = 0; i < N; ++i) {
+    y[i] = std::min(std::max(a[i], min), max);
+  }
+}
+
 unsigned int caffe_rng_rand() {
   return (*caffe_rng())();
 }

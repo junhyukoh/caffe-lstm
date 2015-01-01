@@ -20,10 +20,14 @@ void SigmoidLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   const Dtype* bottom_data = bottom[0]->gpu_data();
   Dtype* top_data = (*top)[0]->mutable_gpu_data();
   const int count = bottom[0]->count();
+
+  Forward_gpu(count, bottom_data, top_data);
+  /*
   // NOLINT_NEXT_LINE(whitespace/operators)
   SigmoidForward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
       count, bottom_data, top_data);
   CUDA_POST_KERNEL_CHECK;
+  */
   // << " count: " << count << " bottom_data: "
   //     << (unsigned long)bottom_data
   //     << " top_data: " << (unsigned long)top_data
@@ -50,10 +54,30 @@ void SigmoidLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     Dtype* bottom_diff = (*bottom)[0]->mutable_gpu_diff();
     const int count = (*bottom)[0]->count();
     // NOLINT_NEXT_LINE(whitespace/operators)
+
+    Backward_gpu(count, top_data, top_diff, bottom_diff);
+    /*
     SigmoidBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
         count, top_diff, top_data, bottom_diff);
     CUDA_POST_KERNEL_CHECK;
+    */
   }
+}
+
+template <typename Dtype> 
+void SigmoidLayer<Dtype>::Forward_gpu(int N, 
+    const Dtype* bottom, Dtype* top) {
+  SigmoidForward<Dtype><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
+      N, bottom, top);
+  CUDA_POST_KERNEL_CHECK;
+}
+
+template <typename Dtype> 
+void SigmoidLayer<Dtype>::Backward_gpu(int N, 
+    const Dtype* top_data, const Dtype* top_diff, Dtype* bottom_diff) {
+   SigmoidBackward<Dtype><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
+      N, top_diff, top_data, bottom_diff);
+   CUDA_POST_KERNEL_CHECK;
 }
 
 INSTANTIATE_CLASS(SigmoidLayer);

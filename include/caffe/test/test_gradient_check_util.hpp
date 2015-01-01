@@ -99,6 +99,7 @@ void GradientChecker<Dtype>::CheckGradientSingle(Layer<Dtype>* layer,
   Caffe::set_random_seed(seed_);
   // Ignore the loss from the layer (it's just the weighted sum of the losses
   // from the top blobs, whose gradients we may want to test individually).
+  layer->PreStartSequence();
   layer->Forward(*bottom, top);
   // Get additional loss from the objective
   GetObjAndGradient(*layer, top, top_id, top_data_id);
@@ -123,7 +124,7 @@ void GradientChecker<Dtype>::CheckGradientSingle(Layer<Dtype>* layer,
     Blob<Dtype>* current_blob = blobs_to_check[blob_id];
     const Dtype* computed_gradients =
         computed_gradient_blobs[blob_id]->cpu_data();
-    // LOG(ERROR) << "Blob " << blob_id << ": checking "
+    //LOG(ERROR) << "Blob " << blob_id << ": checking "
     //     << current_blob->count() << " parameters.";
     for (int feat_id = 0; feat_id < current_blob->count(); ++feat_id) {
       // For an element-wise layer, we only need to do finite differencing to
@@ -139,12 +140,14 @@ void GradientChecker<Dtype>::CheckGradientSingle(Layer<Dtype>* layer,
         // Compute loss with stepsize_ added to input.
         current_blob->mutable_cpu_data()[feat_id] += stepsize_;
         Caffe::set_random_seed(seed_);
+        layer->PreStartSequence();
         layer->Forward(*bottom, top);
         positive_objective =
             GetObjAndGradient(*layer, top, top_id, top_data_id);
         // Compute loss with stepsize_ subtracted from input.
         current_blob->mutable_cpu_data()[feat_id] -= stepsize_ * 2;
         Caffe::set_random_seed(seed_);
+        layer->PreStartSequence();
         layer->Forward(*bottom, top);
         negative_objective =
             GetObjAndGradient(*layer, top, top_id, top_data_id);
@@ -161,6 +164,7 @@ void GradientChecker<Dtype>::CheckGradientSingle(Layer<Dtype>* layer,
           || fabs(feature) > kink_ + kink_range_) {
         // We check relative accuracy, but for too small values, we threshold
         // the scale factor by 1.
+        //if (blob_id != 1) {
         Dtype scale = std::max(
             std::max(fabs(computed_gradient), fabs(estimated_gradient)), 1.);
         EXPECT_NEAR(computed_gradient, estimated_gradient, threshold_ * scale)
@@ -169,6 +173,7 @@ void GradientChecker<Dtype>::CheckGradientSingle(Layer<Dtype>* layer,
           << "; feat = " << feature
           << "; objective+ = " << positive_objective
           << "; objective- = " << negative_objective;
+        //}
       }
       // LOG(ERROR) << "Feature: " << current_blob->cpu_data()[feat_id];
       // LOG(ERROR) << "computed gradient: " << computed_gradient

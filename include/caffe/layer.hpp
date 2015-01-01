@@ -291,6 +291,15 @@ class Layer {
     param_propagate_down_[param_id] = value;
   }
 
+  /**
+   * @brief Return whether the layer is recurrent or not
+   */
+  virtual bool IsRecurrent() const { return false; }
+
+  /**
+   * @brief Before starting a new sequence.
+   */
+  virtual void PreStartSequence() {}
 
  protected:
   /** The protobuf that stores the layer parameters */

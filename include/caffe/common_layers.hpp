@@ -487,6 +487,66 @@ class SliceLayer : public Layer<Dtype> {
   vector<int> slice_point_;
 };
 
+
+/**
+ * @brief Long-short term memory cell layer, computes an inner product
+ *        with a set of learned weights with recurrent connections,
+ *        and (optionally) adds biases.
+ *
+ * TODO(dox): thorough documentation for Forward, Backward, and proto params.
+ */
+template <typename Dtype>
+class LstmLayer : public Layer<Dtype> {
+ public:
+  explicit LstmLayer(const LayerParameter& param)
+      : Layer<Dtype>(param), sigmoid_(new SigmoidLayer<Dtype>(param)),
+       tanh_(new TanHLayer<Dtype>(param)) {}
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Reshape(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_LSTM;
+  }
+
+  virtual bool IsRecurrent() const { return true; }
+  virtual void PreStartSequence();
+
+ protected:
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Backward_cpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
+  virtual void Backward_gpu(const vector<Blob<Dtype>*>& top,
+      const vector<bool>& propagate_down, vector<Blob<Dtype>*>* bottom);
+
+  int I_; // input dimension
+  int H_; // num of hidden units
+  int T_; // length of sequence
+  bool bias_term_;
+  Blob<Dtype> bias_multiplier_;
+
+  Dtype clipping_threshold_; // threshold for clipped gradient
+  Blob<Dtype> pre_gate_;  // gate values before nonlinearity
+  Blob<Dtype> gate_;      // gate values after nonlinearity
+  Blob<Dtype> cell_;      // memory cell;
+
+  Blob<Dtype> prev_cell_; // previous cell state value
+  Blob<Dtype> prev_out_;  // previous hidden activation value
+  Blob<Dtype> next_cell_; // next cell state value
+  Blob<Dtype> next_out_;  // next hidden activation value
+
+  // intermediate values
+  Blob<Dtype> fdc_;
+  Blob<Dtype> ig_;
+  Blob<Dtype> tanh_cell_;
+
+  shared_ptr<SigmoidLayer<Dtype> > sigmoid_;
+  shared_ptr<TanHLayer<Dtype> > tanh_;
+};
 }  // namespace caffe
 
 #endif  // CAFFE_COMMON_LAYERS_HPP_

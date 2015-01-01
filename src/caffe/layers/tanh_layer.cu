@@ -24,9 +24,13 @@ void TanHLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   Dtype* top_data = (*top)[0]->mutable_gpu_data();
   const int count = bottom[0]->count();
   // NOLINT_NEXT_LINE(whitespace/operators)
+
+  Forward_gpu(count, bottom_data, top_data);
+  /*
   TanHForward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
       count, bottom_data, top_data);
   CUDA_POST_KERNEL_CHECK;
+  */
 }
 
 template <typename Dtype>
@@ -48,10 +52,30 @@ void TanHLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     Dtype* bottom_diff = (*bottom)[0]->mutable_gpu_diff();
     const int count = (*bottom)[0]->count();
     // NOLINT_NEXT_LINE(whitespace/operators)
+
+    Backward_gpu(count, top_data, top_diff, bottom_diff);
+    /*
     TanHBackward<Dtype><<<CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS>>>(
         count, top_diff, top_data, bottom_diff);
     CUDA_POST_KERNEL_CHECK;
+    */
   }
+}
+
+template <typename Dtype> 
+void TanHLayer<Dtype>::Forward_gpu(int N, 
+    const Dtype* bottom, Dtype* top) {
+  TanHForward<Dtype><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
+      N, bottom, top);
+  CUDA_POST_KERNEL_CHECK;
+}
+
+template <typename Dtype> 
+void TanHLayer<Dtype>::Backward_gpu(int N, 
+    const Dtype* top_data, const Dtype* top_diff, Dtype* bottom_diff) {
+   TanHBackward<Dtype><<<CAFFE_GET_BLOCKS(N), CAFFE_CUDA_NUM_THREADS>>>(
+      N, top_diff, top_data, bottom_diff);
+   CUDA_POST_KERNEL_CHECK;
 }
 
 INSTANTIATE_CLASS(TanHLayer);

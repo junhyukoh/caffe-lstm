@@ -52,6 +52,18 @@ void LstmLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     }
   }  // parameter initialization
   this->param_propagate_down_.resize(this->blobs_.size(), true);
+
+  this->prev_cell_.Reshape(1, H_, 1, 1);
+  this->prev_out_.Reshape(1, H_, 1, 1);
+  this->next_cell_.Reshape(1, H_, 1, 1);
+  this->next_out_.Reshape(1, H_, 1, 1);
+  caffe_set<Dtype>(H_, Dtype(0.), this->prev_cell_.mutable_cpu_data());
+  caffe_set<Dtype>(H_, Dtype(0.), this->prev_out_.mutable_cpu_data());
+  caffe_set<Dtype>(H_, Dtype(0.), this->next_cell_.mutable_cpu_data());
+  caffe_set<Dtype>(H_, Dtype(0.), this->next_out_.mutable_cpu_data());
+
+  this->fdc_.Reshape(1, H_, 1, 1);
+  this->ig_.Reshape(1, H_, 1, 1);
 }
 
 template <typename Dtype>
@@ -67,14 +79,39 @@ void LstmLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   pre_gate_.Reshape(T_, 4, H_, 1);
   gate_.Reshape(T_, 4, H_, 1);
   cell_.Reshape(T_, H_, 1, 1);
-  fdc_.Reshape(1, H_, 1, 1);
-  ig_.Reshape(1, H_, 1, 1);
   tanh_cell_.Reshape(T_, H_, 1, 1);
 
   // Set up the bias multiplier
   if (bias_term_) {
     bias_multiplier_.Reshape(1, 1, 1, T_);
     caffe_set(T_, Dtype(1), bias_multiplier_.mutable_cpu_data());
+  }
+}
+
+template <typename Dtype>
+void LstmLayer<Dtype>::PreStartSequence() {
+  // Initialize Previous activations
+  CHECK_EQ(H_, prev_cell_.count()) << "# of Hidden unit is "
+    "incompatible with previous cell size";
+  CHECK_EQ(H_, prev_out_.count()) << "# of Hidden unit is "
+    "incompatible with previous output size";
+  switch (Caffe::mode()) {
+    case Caffe::CPU:
+      caffe_set<Dtype>(H_, Dtype(0.), prev_cell_.mutable_cpu_data());
+      caffe_set<Dtype>(H_, Dtype(0.), prev_out_.mutable_cpu_data());
+      caffe_set<Dtype>(H_, Dtype(0.), next_cell_.mutable_cpu_data());
+      caffe_set<Dtype>(H_, Dtype(0.), next_out_.mutable_cpu_data());
+      // LOG(ERROR) << "Init prev values cpu";
+      break;
+    case Caffe::GPU:
+      caffe_gpu_set<Dtype>(H_, Dtype(0.), prev_cell_.mutable_gpu_data());
+      caffe_gpu_set<Dtype>(H_, Dtype(0.), prev_out_.mutable_gpu_data());
+      caffe_gpu_set<Dtype>(H_, Dtype(0.), next_cell_.mutable_gpu_data());
+      caffe_gpu_set<Dtype>(H_, Dtype(0.), next_out_.mutable_gpu_data());
+      // LOG(ERROR) << "Init prev values gpu";
+      break;
+    default:
+      LOG(FATAL) << "Unknown caffe mode.";
   }
 }
 
@@ -90,21 +127,23 @@ void LstmLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   Dtype* cell_data = cell_.mutable_cpu_data();
   Dtype* tanh_cell_data = tanh_cell_.mutable_cpu_data();
 
-  // compute input to hidden forward propagation
+  // Initialize previous state
+  caffe_copy(H_, next_cell_.cpu_data(), prev_cell_.mutable_cpu_data());
+  caffe_copy(H_, next_out_.cpu_data(), prev_out_.mutable_cpu_data());
+
+  // Compute input to hidden forward propagation
   caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasTrans, T_, 4*H_, I_, (Dtype)1.,
       bottom_data, weight_i, (Dtype)0., pre_gate_data);
 
-  // add bias 
+  // Add bias 
   if (bias_term_) {
     const Dtype* bias = this->blobs_[2]->cpu_data();
     caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasNoTrans, T_, 4*H_, 1, (Dtype)1.,
         bias_multiplier_.cpu_data(), bias, (Dtype)1., pre_gate_data);
   }
 
-  // compute recurrent forward propagation
+  // Compute recurrent forward propagation
   for (int t = 0; t < T_; ++t) {
-
-    // for convenience
     Dtype* h_t = top_data + t*H_;
     Dtype* c_t = cell_data + t*H_;
     Dtype* tanh_c_t = tanh_cell_data + t*H_;
@@ -116,12 +155,10 @@ void LstmLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     Dtype* pre_g_t = pre_gate_data + t*4*H_ + 3*H_;
     Dtype* ig = ig_.mutable_cpu_data();
 
-    if (t > 0) {
-      Dtype* h_t_1 = top_data + (t-1)*H_;
-      // add hidden-to-hidden propagation
-      caffe_cpu_gemv<Dtype>(CblasNoTrans, 4*H_, H_, (Dtype)1.,
-          weight_h, h_t_1, (Dtype)1., pre_i_t);
-    }
+    // Add hidden-to-hidden propagation
+    const Dtype* h_t_1 = t > 0 ? (h_t - H_) : prev_out_.cpu_data();
+    caffe_cpu_gemv<Dtype>(CblasNoTrans, 4*H_, H_, (Dtype)1.,
+        weight_h, h_t_1, (Dtype)1., pre_i_t);
 
     // Apply nonlinearity
     // Sigmoid - input/forget/output gate
@@ -130,19 +167,19 @@ void LstmLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     tanh_->Forward_cpu(H_, pre_g_t, g_t);
 
     // Compute cell : c(t) = f(t)*c(t-1) + i(t)*g(t)
-    if (t > 0) { 
-      CHECK_EQ(c_t - H_, cell_data + (t-1) * H_);
-      caffe_mul<Dtype>(H_, f_t, c_t - H_, c_t);
-    } else {
-      caffe_set(H_, (Dtype)0., c_t);
-    }
+    const Dtype* c_t_1 = t > 0 ? (c_t - H_) : prev_cell_.cpu_data();
+    caffe_mul<Dtype>(H_, f_t, c_t_1, c_t);
     caffe_mul<Dtype>(H_, i_t, g_t, ig);
     caffe_add<Dtype>(H_, c_t, ig, c_t);
 
-    // compute output 
+    // Compute output 
     tanh_->Forward_cpu(H_, c_t, tanh_c_t);
     caffe_mul<Dtype>(H_, o_t, tanh_c_t, h_t);
   }
+
+  // Preserve cell state and output value
+  caffe_copy(H_, cell_data + (T_-1)*H_, next_cell_.mutable_cpu_data());
+  caffe_copy(H_, top_data + (T_-1)*H_, next_out_.mutable_cpu_data());
 }
 
 template <typename Dtype>
@@ -164,7 +201,6 @@ void LstmLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   Dtype* cell_diff = cell_.mutable_cpu_diff();
 
   for (int t = T_-1; t >= 0; --t) {
-    // for convenience
     Dtype* dh_t = top_diff + t*H_;
     const Dtype* c_t = cell_data + t*H_;
     Dtype* dc_t = cell_diff + t*H_;
@@ -181,55 +217,41 @@ void LstmLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     Dtype* pre_dg_t = pre_gate_diff + t*4*H_ + 3*H_;
     Dtype* fdc = fdc_.mutable_cpu_data();
 
-    // output gate
+    // Output gate : tanh(c(t)) * h_diff(t)
     caffe_mul<Dtype>(H_, tanh_c_t, dh_t, do_t);
 
-    // cell state
-    // o(t) * tanh'(c(t)) * h_diff(t) + f(t+1) * c_diff(t+1)
+    // Cell state : o(t) * tanh'(c(t)) * h_diff(t) + f(t+1) * c_diff(t+1)
     caffe_mul<Dtype>(H_, o_t, dh_t, dc_t);
     tanh_->Backward_cpu(H_, tanh_c_t, dc_t, dc_t);
     if (t < T_-1) {
-      CHECK_EQ(f_t + 4*H_, gate_data + (t+1)*4*H_ + 1*H_) 
-        << "Forget gate idx wrong";
-      CHECK_EQ(dc_t + H_, cell_diff + (t+1)*H_) 
-        << "Cell state idx wrong";
       caffe_mul<Dtype>(H_, f_t + 4*H_, dc_t + H_, fdc);
       caffe_add<Dtype>(H_, fdc, dc_t, dc_t);
     }
 
-    // forget gate
-    if (t > 0) {
-      const Dtype* c_t_1 = c_t - H_;
-      CHECK_EQ(c_t_1, cell_data + (t-1)*H_) 
-        << "Cell state idx wrong";
-      caffe_mul<Dtype>(H_, c_t_1, dc_t, df_t);
-    } else {
-      caffe_set<Dtype>(H_, Dtype(0.), df_t);
-    }
+    // Forget gate : c(t-1) * c_diff(t)
+    const Dtype* c_t_1 = t > 0 ? (c_t - H_) : prev_cell_.cpu_data();
+    caffe_mul<Dtype>(H_, c_t_1, dc_t, df_t);
 
-    // input gate
+    // Input gate : g(t) * c_diff(t)
     caffe_mul<Dtype>(H_, g_t, dc_t, di_t);
-    // input modulation gate
+    // Input modulation gate : i(t) * c_diff(t)
     caffe_mul<Dtype>(H_, i_t, dc_t, dg_t);
 
-    // compute derivate before nonlinearity
+    // Compute derivate before nonlinearity
     sigmoid_->Backward_cpu(3*H_, i_t, di_t, pre_di_t);
     tanh_->Backward_cpu(H_, g_t, dg_t, pre_dg_t);
 
-    // clip deriviates before nonlinearity
+    // Clip deriviates before nonlinearity
     if (clipping_threshold_ > 0.0f) {
       caffe_bound<Dtype>(4*H_, pre_di_t, -clipping_threshold_, 
           clipping_threshold_, pre_di_t);
     }
     
     if (t > 0) {
-      // backprop output errors to the previous time step
-      CHECK_EQ(dh_t - H_, top_diff + (t-1)*H_) 
-        << "hidden idx wrong";
+      // Backprop output errors to the previous time step
       caffe_cpu_gemv<Dtype>(CblasTrans, 4*H_, H_, (Dtype)1.,
         weight_h, pre_di_t, (Dtype)1., dh_t - H_);
     }
-    
   }
  
   if (this->param_propagate_down_[0]) {
@@ -242,6 +264,10 @@ void LstmLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     // Gradient w.r.t. hidden-to-hidden weight
     caffe_cpu_gemm<Dtype>(CblasTrans, CblasNoTrans, 4*H_, H_, T_-1, (Dtype)1.,
         pre_gate_diff + 4*H_, top_data, (Dtype)0., this->blobs_[1]->mutable_cpu_diff());
+
+    // Add Gradient from previous time-step
+    caffe_cpu_gemm<Dtype>(CblasTrans, CblasNoTrans, 4*H_, H_, 1, (Dtype)1.,
+        pre_gate_diff, prev_out_.cpu_data(), (Dtype)1., this->blobs_[1]->mutable_cpu_diff());
   }
   if (bias_term_ && this->param_propagate_down_[2]) { 
     // Gradient w.r.t. bias

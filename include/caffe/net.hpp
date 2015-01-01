@@ -158,6 +158,15 @@ class Net {
   static bool StateMeetsRule(const NetState& state, const NetStateRule& rule,
       const string& layer_name);
 
+  /**
+   * @brief Return whether the network consists of recurrent layers or not
+   */
+  bool IsRecurrent() const;
+  /**
+   * @brief Preprocessing before starting a new sequence
+   */
+  void PreStartSequence();
+
  protected:
   // Helpers for Init.
   /// @brief Append a new input or top blob to the net.

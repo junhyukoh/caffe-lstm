@@ -524,6 +524,7 @@ Dtype Net<Dtype>::ForwardTo(int end) {
 
 template <typename Dtype>
 const vector<Blob<Dtype>*>& Net<Dtype>::ForwardPrefilled(Dtype* loss) {
+  PreStartSequence();
   if (loss != NULL) {
     *loss = ForwardFromTo(0, layers_.size() - 1);
   } else {
@@ -817,6 +818,23 @@ const shared_ptr<Layer<Dtype> > Net<Dtype>::layer_by_name(
     LOG(WARNING) << "Unknown layer name " << layer_name;
   }
   return layer_ptr;
+}
+
+template <typename Dtype>
+bool Net<Dtype>::IsRecurrent() const {
+  for (int i = 0; i < layers_.size(); ++i) {
+    if (layers_[i]->IsRecurrent()) {
+      return true;
+    } 
+  }
+  return false;
+}
+
+template <typename Dtype>
+void Net<Dtype>::PreStartSequence() {
+  for (int i = 0; i < layers_.size(); ++i) {
+    layers_[i]->PreStartSequence();
+  }
 }
 
 INSTANTIATE_CLASS(Net);
