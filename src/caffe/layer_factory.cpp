@@ -253,6 +253,8 @@ Layer<Dtype>* GetLayer(const LayerParameter& param) {
     return new WindowDataLayer<Dtype>(param);
   case LayerParameter_LayerType_LSTM:
     return new LstmLayer<Dtype>(param);
+  case LayerParameter_LayerType_SEQ_MEMORY_DATA:
+    return new SeqMemoryDataLayer<Dtype>(param);
   case LayerParameter_LayerType_NONE:
     LOG(FATAL) << "Layer " << name << " has unspecified type.";
   default:

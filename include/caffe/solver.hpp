@@ -32,10 +32,16 @@ class Solver {
     return test_nets_;
   }
 
- protected:
   // PreSolve is run before any solving iteration starts, allowing one to
   // put up some scaffold.
   virtual void PreSolve() {}
+
+  void SetIter(int iter) { iter_ = iter; }
+  void SetStartIter(int start_iter) { start_iter_ = start_iter; }
+  virtual void SolveIter(Dtype& smoothed_loss, vector<Dtype>& losses);
+  virtual bool IsFinished() const { return iter_ >= param_.max_iter(); }
+
+ protected:
   // Get the update value for the current iteration.
   virtual void ComputeUpdateValue() = 0;
   // The Solver::Snapshot function implements the basic snapshotting utility
@@ -56,6 +62,7 @@ class Solver {
 
   SolverParameter param_;
   int iter_;
+  int start_iter_;
   int current_step_;
   shared_ptr<Net<Dtype> > net_;
   vector<shared_ptr<Net<Dtype> > > test_nets_;

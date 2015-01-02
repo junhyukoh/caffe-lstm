@@ -204,7 +204,7 @@ message NetStateRule {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available ID: 42 (last added: lstm_param)
+// LayerParameter next available ID: 43 (last added: seq_data_param)
 message LayerParameter {
   repeated string bottom = 2; // the name of the bottom blobs
   repeated string top = 3; // the name of the top blobs
@@ -225,7 +225,7 @@ message LayerParameter {
   // line above the enum. Update the next available ID when you add a new
   // LayerType.
   //
-  // LayerType next available ID: 39 (last added: LSTM)
+  // LayerType next available ID: 40 (last added: SEQ_MEMORY_DATA)
   enum LayerType {
     // "NONE" layer type is 0th enum element so that we don't cause confusion
     // by defaulting to an existent LayerType (instead, should usually error if
@@ -269,6 +269,7 @@ message LayerParameter {
     WINDOW_DATA = 24;
     THRESHOLD = 31;
     LSTM = 38;
+    SEQ_MEMORY_DATA = 39;
   }
   optional LayerType type = 5; // the layer type from the enum above
 
@@ -564,6 +565,10 @@ message MemoryDataParameter {
   optional uint32 channels = 2;
   optional uint32 height = 3;
   optional uint32 width = 4;
+
+  optional uint32 label_channels = 5 [default = 1];
+  optional uint32 label_height = 6 [default = 1];
+  optional uint32 label_width = 7 [default = 1];
 }
 
 // Message that stores parameters used by MVNLayer

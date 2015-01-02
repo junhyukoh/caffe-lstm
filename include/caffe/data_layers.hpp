@@ -345,6 +345,41 @@ class WindowDataLayer : public BasePrefetchingDataLayer<Dtype> {
   vector<vector<float> > bg_windows_;
 };
 
+/**
+ * @brief Provides sequential data to the Net from memory
+ */
+template <typename Dtype>
+class SeqMemoryDataLayer : public BaseDataLayer<Dtype> {
+ public:
+  explicit SeqMemoryDataLayer(const LayerParameter& param)
+      : BaseDataLayer<Dtype>(param) {}
+  virtual ~SeqMemoryDataLayer() {}
+
+  virtual void LayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual void DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  void DataFetch(const Datum& datum);
+  void DataFetch(const vector<Datum>& data, const vector<vector<Dtype> >& label);
+
+  virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+  virtual void Forward_gpu(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline LayerParameter_LayerType type() const {
+    return LayerParameter_LayerType_SEQ_MEMORY_DATA;
+  }
+
+ protected:
+
+  int batch_size_;
+  Blob<Dtype> prefetch_data_;
+  Blob<Dtype> prefetch_label_;
+};
+
 }  // namespace caffe
 
 #endif  // CAFFE_DATA_LAYERS_HPP_

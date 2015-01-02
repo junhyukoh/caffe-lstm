@@ -49,6 +49,9 @@ void LstmLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       shared_ptr<Filler<Dtype> > bias_filler(GetFiller<Dtype>(
           this->layer_param_.inner_product_param().bias_filler()));
       bias_filler->Fill(this->blobs_[2].get());
+ 
+      caffe_set<Dtype>(H_, Dtype(5.), 
+          this->blobs_[2]->mutable_cpu_data() + 1*H_);
     }
   }  // parameter initialization
   this->param_propagate_down_.resize(this->blobs_.size(), true);
@@ -128,8 +131,11 @@ void LstmLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   Dtype* tanh_cell_data = tanh_cell_.mutable_cpu_data();
 
   // Initialize previous state
+
+  /*
   caffe_copy(H_, next_cell_.cpu_data(), prev_cell_.mutable_cpu_data());
   caffe_copy(H_, next_out_.cpu_data(), prev_out_.mutable_cpu_data());
+  */
 
   // Compute input to hidden forward propagation
   caffe_cpu_gemm<Dtype>(CblasNoTrans, CblasTrans, T_, 4*H_, I_, (Dtype)1.,
@@ -177,9 +183,11 @@ void LstmLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     caffe_mul<Dtype>(H_, o_t, tanh_c_t, h_t);
   }
 
+  /*
   // Preserve cell state and output value
   caffe_copy(H_, cell_data + (T_-1)*H_, next_cell_.mutable_cpu_data());
   caffe_copy(H_, top_data + (T_-1)*H_, next_out_.mutable_cpu_data());
+  */
 }
 
 template <typename Dtype>
@@ -265,9 +273,11 @@ void LstmLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     caffe_cpu_gemm<Dtype>(CblasTrans, CblasNoTrans, 4*H_, H_, T_-1, (Dtype)1.,
         pre_gate_diff + 4*H_, top_data, (Dtype)0., this->blobs_[1]->mutable_cpu_diff());
 
+    /*
     // Add Gradient from previous time-step
     caffe_cpu_gemm<Dtype>(CblasTrans, CblasNoTrans, 4*H_, H_, 1, (Dtype)1.,
         pre_gate_diff, prev_out_.cpu_data(), (Dtype)1., this->blobs_[1]->mutable_cpu_diff());
+        */
   }
   if (bias_term_ && this->param_propagate_down_[2]) { 
     // Gradient w.r.t. bias
