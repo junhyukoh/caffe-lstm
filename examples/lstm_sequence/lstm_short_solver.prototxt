@@ -12,7 +12,7 @@ lr_policy: "fixed"
 # Display every 100 iterations
 display: 200
 # The maximum number of iterations
-max_iter: 50000
+max_iter: 100000
 # solver mode: CPU or GPU
 solver_mode: CPU
 average_loss: 200
