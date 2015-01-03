@@ -1,0 +1,81 @@
+name: "LSTM"
+layers {
+  name: "LSTM"
+  type: SEQ_MEMORY_DATA
+  top: "data"
+  top: "label"
+  memory_data_param {
+    batch_size: 320
+    channels: 1
+    height: 1
+    width: 1
+    label_channels: 1
+    label_height: 1
+    label_width: 1
+  }
+  include: { phase: TRAIN }
+}
+layers {
+  name: "LSTM"
+  type: SEQ_MEMORY_DATA
+  top: "data"
+  memory_data_param {
+    batch_size: 1
+    channels: 1
+    height: 1
+    width: 1
+  }
+  include: { phase: TEST }
+}
+layers {
+  name: "lstm1"
+  type: LSTM
+  bottom: "data"
+  top: "lstm1"
+
+  blobs_lr: 1
+  blobs_lr: 1
+  blobs_lr: 1
+
+  inner_product_param {
+    num_output: 50
+    weight_filler {
+      type: "gaussian"
+      std: 0.1
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+
+  lstm_param {
+    clipping_threshold: 0.1
+  }
+}
+layers {
+  name: "ip1"
+  type: INNER_PRODUCT
+  bottom: "lstm1"
+  top: "ip1"
+
+  blobs_lr: 1
+  blobs_lr: 2
+  inner_product_param {
+    num_output: 1
+    weight_filler {
+      type: "gaussian"
+      std: 0.1
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layers {
+  name: "loss"
+  type: EUCLIDEAN_LOSS
+  bottom: "ip1"
+  bottom: "label"
+  top: "loss"
+  include: { phase: TRAIN }
+}

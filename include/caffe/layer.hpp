@@ -297,6 +297,11 @@ class Layer {
   virtual bool IsRecurrent() const { return false; }
 
   /**
+   * @brief Return whether the data fetched is head of the sequence or not
+   */
+  virtual bool IsSequenceHead() const { return true; }
+
+  /**
    * @brief Before starting a new sequence.
    */
   virtual void PreStartSequence() {}

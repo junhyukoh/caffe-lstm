@@ -1,5 +1,5 @@
 # The train/test net protocol buffer definition
-net: "lstm.prototxt"
+net: "lstm_short.prototxt"
 # test_iter specifies how many forward passes the test should carry out.
 test_iter: 1
 # Carry out testing every 500 training iterations.

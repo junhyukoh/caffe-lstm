@@ -20,7 +20,7 @@ layers {
   type: SEQ_MEMORY_DATA
   top: "data"
   memory_data_param {
-    batch_size: 320
+    batch_size: 1
     channels: 1
     height: 1
     width: 1
@@ -38,60 +38,10 @@ layers {
   blobs_lr: 1
 
   inner_product_param {
-    num_output: 10
+    num_output: 15
     weight_filler {
       type: "gaussian"
-      std: 0.0001
-    }
-    bias_filler {
-      type: "constant"
-    }
-  }
-
-  lstm_param {
-    clipping_threshold: 0.1
-  }
-}
-layers {
-  name: "lstm2"
-  type: LSTM
-  bottom: "lstm1"
-  top: "lstm2"
-
-  blobs_lr: 1
-  blobs_lr: 1
-  blobs_lr: 1
-
-  inner_product_param {
-    num_output: 10
-    weight_filler {
-      type: "gaussian"
-      std: 0.0001
-    }
-    bias_filler {
-      type: "constant"
-    }
-  }
-
-  lstm_param {
-    clipping_threshold: 0.1
-  }
-}
-layers {
-  name: "lstm3"
-  type: LSTM
-  bottom: "lstm2"
-  top: "lstm3"
-
-  blobs_lr: 1
-  blobs_lr: 1
-  blobs_lr: 1
-
-  inner_product_param {
-    num_output: 10
-    weight_filler {
-      type: "gaussian"
-      std: 0.0001
+      std: 0.1
     }
     bias_filler {
       type: "constant"
@@ -105,7 +55,7 @@ layers {
 layers {
   name: "ip1"
   type: INNER_PRODUCT
-  bottom: "lstm3"
+  bottom: "lstm1"
   top: "ip1"
 
   blobs_lr: 1

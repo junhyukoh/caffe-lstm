@@ -18,14 +18,17 @@ using std::string;
 namespace caffe {
 
 template <typename Dtype>
-void SeqMemoryDataLayer<Dtype>::DataFetch(const Datum& datum) {
+void SeqMemoryDataLayer<Dtype>::DataFetch(const Datum& datum, bool sequence_head) {
   Dtype* top_data = this->prefetch_data_.mutable_cpu_data();
   this->data_transformer_.Transform(0, datum, this->mean_, top_data);
+  sequence_head_ = sequence_head;
 }
 
 template <typename Dtype>
 void SeqMemoryDataLayer<Dtype>::DataFetch(const vector<Datum>& data, 
-    const vector<vector<Dtype> >& label) {
+    const vector<vector<Dtype> >& label, bool sequence_head) {
+
+  // LOG(ERROR) << "Datum Add ";
   const int label_channel = 
     this->layer_param_.memory_data_param().label_channels();
   const int label_width = 
@@ -49,6 +52,9 @@ void SeqMemoryDataLayer<Dtype>::DataFetch(const vector<Datum>& data,
       top_label[i * label_size + j] = l[j];
     }
   }
+
+  // LOG(ERROR) << "Add Batch Sequence head" << sequence_head;
+  sequence_head_ = sequence_head;
 }
 
 template <typename Dtype>

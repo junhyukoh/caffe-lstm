@@ -524,7 +524,19 @@ Dtype Net<Dtype>::ForwardTo(int end) {
 
 template <typename Dtype>
 const vector<Blob<Dtype>*>& Net<Dtype>::ForwardPrefilled(Dtype* loss) {
-  PreStartSequence();
+
+  bool head_of_sequence = true;
+  for (int i = 0; i < layers_.size(); ++i) {
+    if (!layers_[i]->IsSequenceHead()) {
+      head_of_sequence = false;
+      break;
+    }
+  }
+
+  if (head_of_sequence) {
+    PreStartSequence();
+  }
+
   if (loss != NULL) {
     *loss = ForwardFromTo(0, layers_.size() - 1);
   } else {

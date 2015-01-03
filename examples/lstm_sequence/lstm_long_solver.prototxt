@@ -1,20 +1,20 @@
 # The train/test net protocol buffer definition
-net: "deep_lstm.prototxt"
+net: "lstm_long.prototxt"
 # test_iter specifies how many forward passes the test should carry out.
 test_iter: 1
 # Carry out testing every 500 training iterations.
-test_interval: 200000
+test_interval: 2000000
 # The base learning rate, momentum and the weight decay of the network.
-base_lr: 0.0003
+base_lr: 0.0001
 momentum: 0.95
 # The learning rate policy
 lr_policy: "fixed"
 # Display every 100 iterations
-display: 10
+display: 200
 # The maximum number of iterations
-max_iter: 10000
+max_iter: 100000
 # solver mode: CPU or GPU
 solver_mode: CPU
-
+average_loss: 200
 # solver_type: NESTEROV
 # debug_info: true

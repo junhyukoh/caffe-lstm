@@ -360,9 +360,11 @@ class SeqMemoryDataLayer : public BaseDataLayer<Dtype> {
 
   virtual void DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top);
-
-  void DataFetch(const Datum& datum);
-  void DataFetch(const vector<Datum>& data, const vector<vector<Dtype> >& label);
+ 
+  void DataFetch(const Datum& datum, bool sequence_head = true);
+  void DataFetch(const vector<Datum>& data, const vector<vector<Dtype> >& label,
+      bool sequence_head = true);
+  virtual bool IsSequenceHead() const {return sequence_head_; }
 
   virtual void Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       vector<Blob<Dtype>*>* top);
@@ -375,6 +377,7 @@ class SeqMemoryDataLayer : public BaseDataLayer<Dtype> {
 
  protected:
 
+  bool sequence_head_;
   int batch_size_;
   Blob<Dtype> prefetch_data_;
   Blob<Dtype> prefetch_label_;
