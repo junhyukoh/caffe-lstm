@@ -13,13 +13,12 @@
 namespace caffe {
 
 template <typename Dtype>
-class ArgMaxLayerTest : public ::testing::Test {
+class ArgMaxLayerTest : public CPUDeviceTest<Dtype> {
  protected:
   ArgMaxLayerTest()
       : blob_bottom_(new Blob<Dtype>(10, 20, 1, 1)),
         blob_top_(new Blob<Dtype>()),
         top_k_(5) {
-    Caffe::set_mode(Caffe::CPU);
     Caffe::set_random_seed(1701);
     // fill the values
     FillerParameter filler_param;
@@ -41,7 +40,7 @@ TYPED_TEST_CASE(ArgMaxLayerTest, TestDtypes);
 TYPED_TEST(ArgMaxLayerTest, TestSetup) {
   LayerParameter layer_param;
   ArgMaxLayer<TypeParam> layer(layer_param);
-  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
   EXPECT_EQ(this->blob_top_->num(), this->blob_bottom_->num());
   EXPECT_EQ(this->blob_top_->channels(), 1);
 }
@@ -51,7 +50,7 @@ TYPED_TEST(ArgMaxLayerTest, TestSetupMaxVal) {
   ArgMaxParameter* argmax_param = layer_param.mutable_argmax_param();
   argmax_param->set_out_max_val(true);
   ArgMaxLayer<TypeParam> layer(layer_param);
-  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
   EXPECT_EQ(this->blob_top_->num(), this->blob_bottom_->num());
   EXPECT_EQ(this->blob_top_->channels(), 2);
 }
@@ -59,8 +58,8 @@ TYPED_TEST(ArgMaxLayerTest, TestSetupMaxVal) {
 TYPED_TEST(ArgMaxLayerTest, TestCPU) {
   LayerParameter layer_param;
   ArgMaxLayer<TypeParam> layer(layer_param);
-  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
-  layer.Forward(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
+  layer.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
   // Now, check values
   const TypeParam* bottom_data = this->blob_bottom_->cpu_data();
   const TypeParam* top_data = this->blob_top_->cpu_data();
@@ -84,8 +83,8 @@ TYPED_TEST(ArgMaxLayerTest, TestCPUMaxVal) {
   ArgMaxParameter* argmax_param = layer_param.mutable_argmax_param();
   argmax_param->set_out_max_val(true);
   ArgMaxLayer<TypeParam> layer(layer_param);
-  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
-  layer.Forward(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
+  layer.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
   // Now, check values
   const TypeParam* bottom_data = this->blob_bottom_->cpu_data();
   const TypeParam* top_data = this->blob_top_->cpu_data();
@@ -110,8 +109,8 @@ TYPED_TEST(ArgMaxLayerTest, TestCPUTopK) {
   ArgMaxParameter* argmax_param = layer_param.mutable_argmax_param();
   argmax_param->set_top_k(this->top_k_);
   ArgMaxLayer<TypeParam> layer(layer_param);
-  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
-  layer.Forward(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
+  layer.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
   // Now, check values
   int max_ind;
   TypeParam max_val;
@@ -140,8 +139,8 @@ TYPED_TEST(ArgMaxLayerTest, TestCPUMaxValTopK) {
   argmax_param->set_out_max_val(true);
   argmax_param->set_top_k(this->top_k_);
   ArgMaxLayer<TypeParam> layer(layer_param);
-  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
-  layer.Forward(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
+  layer.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
   // Now, check values
   int max_ind;
   TypeParam max_val;

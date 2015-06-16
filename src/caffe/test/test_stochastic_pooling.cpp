@@ -16,8 +16,10 @@ using std::min;
 
 namespace caffe {
 
-template <typename Dtype>
-class StochasticPoolingLayerTest : public ::testing::Test {
+template <typename TypeParam>
+class StochasticPoolingLayerTest : public MultiDeviceTest<TypeParam> {
+  typedef typename TypeParam::Dtype Dtype;
+
  protected:
   StochasticPoolingLayerTest()
       : blob_bottom_(new Blob<Dtype>()),
@@ -45,32 +47,45 @@ class StochasticPoolingLayerTest : public ::testing::Test {
   vector<Blob<Dtype>*> blob_top_vec_;
 };
 
-TYPED_TEST_CASE(StochasticPoolingLayerTest, TestDtypes);
+template <typename Dtype>
+class CPUStochasticPoolingLayerTest
+  : public StochasticPoolingLayerTest<CPUDevice<Dtype> > {
+};
 
-TYPED_TEST(StochasticPoolingLayerTest, TestSetup) {
+TYPED_TEST_CASE(CPUStochasticPoolingLayerTest, TestDtypes);
+
+TYPED_TEST(CPUStochasticPoolingLayerTest, TestSetup) {
   LayerParameter layer_param;
   PoolingParameter* pooling_param = layer_param.mutable_pooling_param();
   pooling_param->set_kernel_size(3);
   pooling_param->set_stride(2);
   PoolingLayer<TypeParam> layer(layer_param);
-  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
   EXPECT_EQ(this->blob_top_->num(), this->blob_bottom_->num());
   EXPECT_EQ(this->blob_top_->channels(), this->blob_bottom_->channels());
   EXPECT_EQ(this->blob_top_->height(), 3);
   EXPECT_EQ(this->blob_top_->width(), 2);
 }
 
-TYPED_TEST(StochasticPoolingLayerTest, TestStochasticGPU) {
-  Caffe::set_mode(Caffe::GPU);
-  Caffe::set_phase(Caffe::TRAIN);
+#ifndef CPU_ONLY
+
+template <typename Dtype>
+class GPUStochasticPoolingLayerTest
+  : public StochasticPoolingLayerTest<GPUDevice<Dtype> > {
+};
+
+TYPED_TEST_CASE(GPUStochasticPoolingLayerTest, TestDtypes);
+
+TYPED_TEST(GPUStochasticPoolingLayerTest, TestStochastic) {
   LayerParameter layer_param;
+  layer_param.set_phase(TRAIN);
   PoolingParameter* pooling_param = layer_param.mutable_pooling_param();
   pooling_param->set_kernel_size(3);
   pooling_param->set_stride(2);
   pooling_param->set_pool(PoolingParameter_PoolMethod_STOCHASTIC);
   PoolingLayer<TypeParam> layer(layer_param);
-  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
-  layer.Forward(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
+  layer.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
 
   // Check if the output is correct - it should do random sampling
   const TypeParam* bottom_data = this->blob_bottom_->cpu_data();
@@ -104,17 +119,16 @@ TYPED_TEST(StochasticPoolingLayerTest, TestStochasticGPU) {
   EXPECT_GE(total / this->blob_top_->count(), 0.55);
 }
 
-TYPED_TEST(StochasticPoolingLayerTest, TestStochasticGPUTestPhase) {
-  Caffe::set_mode(Caffe::GPU);
-  Caffe::set_phase(Caffe::TEST);
+TYPED_TEST(GPUStochasticPoolingLayerTest, TestStochasticTestPhase) {
   LayerParameter layer_param;
+  layer_param.set_phase(TEST);
   PoolingParameter* pooling_param = layer_param.mutable_pooling_param();
   pooling_param->set_kernel_size(3);
   pooling_param->set_stride(2);
   pooling_param->set_pool(PoolingParameter_PoolMethod_STOCHASTIC);
   PoolingLayer<TypeParam> layer(layer_param);
-  layer.SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
-  layer.Forward(this->blob_bottom_vec_, &(this->blob_top_vec_));
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
+  layer.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
 
   // Check if the output is correct - it should do random sampling
   const TypeParam* bottom_data = this->blob_bottom_->cpu_data();
@@ -142,10 +156,9 @@ TYPED_TEST(StochasticPoolingLayerTest, TestStochasticGPUTestPhase) {
   }
 }
 
-TYPED_TEST(StochasticPoolingLayerTest, TestGradientGPU) {
-  Caffe::set_mode(Caffe::GPU);
-  Caffe::set_phase(Caffe::TRAIN);
+TYPED_TEST(GPUStochasticPoolingLayerTest, TestGradient) {
   LayerParameter layer_param;
+  layer_param.set_phase(TRAIN);
   PoolingParameter* pooling_param = layer_param.mutable_pooling_param();
   pooling_param->set_kernel_size(3);
   pooling_param->set_stride(2);
@@ -154,10 +167,10 @@ TYPED_TEST(StochasticPoolingLayerTest, TestGradientGPU) {
   GradientChecker<TypeParam> checker(1e-4, 1e-2);
   // it is too expensive to call curand multiple times, so we don't do an
   // exhaustive gradient check.
-  checker.CheckGradient(&layer, &(this->blob_bottom_vec_),
-      &(this->blob_top_vec_));
+  checker.CheckGradient(&layer, this->blob_bottom_vec_,
+      this->blob_top_vec_);
 }
 
-
+#endif
 
 }  // namespace caffe

@@ -47,13 +47,23 @@ if $WITH_CUDA; then
 fi
 
 # Install LMDB
-LMDB_URL=ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release/openldap-2.4.39.tgz
-LMDB_FILE=/tmp/openldap.tgz
+LMDB_URL=https://github.com/LMDB/lmdb/archive/LMDB_0.9.14.tar.gz
+LMDB_FILE=/tmp/lmdb.tar.gz
 pushd .
-curl $LMDB_URL -o $LMDB_FILE
+wget $LMDB_URL -O $LMDB_FILE
 tar -C /tmp -xzvf $LMDB_FILE
-cd /tmp/openldap*/libraries/liblmdb/
+cd /tmp/lmdb*/libraries/liblmdb/
 $MAKE
 $MAKE install
 popd
 rm -f $LMDB_FILE
+
+# Install the Python runtime dependencies via miniconda (this is much faster
+# than using pip for everything).
+wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+chmod +x miniconda.sh
+./miniconda.sh -b
+export PATH=/home/travis/miniconda/bin:$PATH
+conda update --yes conda
+conda install --yes numpy scipy matplotlib scikit-image pip
+pip install protobuf

@@ -8,7 +8,6 @@
 #include "caffe/util/rng.hpp"
 
 namespace caffe {
-
 template<>
 void caffe_cpu_gemm<float>(const CBLAS_TRANSPOSE TransA,
     const CBLAS_TRANSPOSE TransB, const int M, const int N, const int K,
@@ -207,6 +206,16 @@ void caffe_exp<double>(const int n, const double* a, double* y) {
 }
 
 template <>
+void caffe_log<float>(const int n, const float* a, float* y) {
+  vsLn(n, a, y);
+}
+
+template <>
+void caffe_log<double>(const int n, const double* a, double* y) {
+  vdLn(n, a, y);
+}
+
+template <>
 void caffe_abs<float>(const int n, const float* a, float* y) {
     vsAbs(n, a, y);
 }
@@ -214,6 +223,75 @@ void caffe_abs<float>(const int n, const float* a, float* y) {
 template <>
 void caffe_abs<double>(const int n, const double* a, double* y) {
     vdAbs(n, a, y);
+}
+
+template <typename Dtype>
+inline Dtype sigmoid(Dtype x) {
+  return 1. / (1. + exp(-x));
+}
+
+template <>
+void caffe_sigmoid(const int N, const float* x, float* y) {
+  for (int i = 0; i < N; ++i) {
+    y[i] = sigmoid(x[i]);
+  }
+}
+
+template <>
+void caffe_sigmoid(const int N, const double* x, double* y) {
+  for (int i = 0; i < N; ++i) {
+    y[i] = sigmoid(x[i]);
+  }
+}
+
+template <>
+void caffe_sigmoid_diff(const int N, const float* y, const float* y_diff, 
+    float* x_diff) {
+  for (int i = 0; i < N; ++i) {
+    const float sigmoid_x = y[i];
+    x_diff[i] = y_diff[i] * sigmoid_x * (1. - sigmoid_x);
+  }
+}
+
+template <>
+void caffe_sigmoid_diff(const int N, const double* y, const double* y_diff, 
+    double* x_diff) {
+  for (int i = 0; i < N; ++i) {
+    const double sigmoid_x = y[i];
+    x_diff[i] = y_diff[i] * sigmoid_x * (1. - sigmoid_x);
+  }
+}
+
+template <>
+void caffe_tanh(const int N, const float* x, float* y) {
+  for (int i = 0; i < N; ++i) {
+    y[i] = tanh(x[i]);
+  }
+}
+
+template <>
+void caffe_tanh(const int N, const double* x, double* y) {
+  for (int i = 0; i < N; ++i) {
+    y[i] = tanh(x[i]);
+  }
+}
+
+template <>
+void caffe_tanh_diff(const int N, const float* y, const float* y_diff, 
+    float* x_diff) {
+  for (int i = 0; i < N; ++i) {
+    const float tanh_x = y[i];
+    x_diff[i] = y_diff[i] * (1. - tanh_x * tanh_x);
+  }
+}
+
+template <>
+void caffe_tanh_diff(const int N, const double* y, const double* y_diff, 
+    double* x_diff) {
+  for (int i = 0; i < N; ++i) {
+    const double tanh_x = y[i];
+    x_diff[i] = y_diff[i] * (1. - tanh_x * tanh_x);
+  }
 }
 
 template <>
@@ -385,9 +463,6 @@ template <>
 double caffe_cpu_asum<double>(const int n, const double* x) {
   return cblas_dasum(n, x, 1);
 }
-
-INSTANTIATE_CAFFE_CPU_UNARY_FUNC(sign);
-INSTANTIATE_CAFFE_CPU_UNARY_FUNC(sgnbit);
 
 template <>
 void caffe_cpu_scale<float>(const int n, const float alpha, const float *x,

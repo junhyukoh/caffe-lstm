@@ -23,7 +23,7 @@ int main(int argc, char** argv)
   // Converting input parameters
   const char* net_solver(argv[1]);
   const char* result_path(argv[2]);
-  const int SeqLength = atoi(argv[3]);
+  const int TotalLength = atoi(argv[3]);
 
   caffe::SolverParameter solver_param;
   caffe::ReadProtoFromTextFileOrDie(net_solver, &solver_param);
@@ -31,9 +31,34 @@ int main(int argc, char** argv)
   shared_ptr<Solver<double> > solver;
   solver.reset(GetSolver<double>(solver_param));
   shared_ptr<Net<double> > train_net(solver->net());
-  shared_ptr<Net<double> > test_net(solver->test_nets()[0]);
+  shared_ptr<Net<double> > test_net(new Net<double> (solver_param.net(), TEST));
+  CHECK(train_net->has_layer("data"));
+  CHECK(train_net->has_layer("clip"));
+  CHECK(test_net->has_layer("data"));
+  CHECK(test_net->has_layer("clip"));
+  MemoryDataLayer<double>* train_data_layer = 
+    static_cast<MemoryDataLayer<double>*>(train_net->layer_by_name("data").get());
+  MemoryDataLayer<double>* train_clip_layer = 
+    static_cast<MemoryDataLayer<double>*>(train_net->layer_by_name("clip").get()); 
+  MemoryDataLayer<double>* test_data_layer = 
+    static_cast<MemoryDataLayer<double>*>(test_net->layer_by_name("data").get());
+  MemoryDataLayer<double>* test_clip_layer = 
+    static_cast<MemoryDataLayer<double>*>(test_net->layer_by_name("clip").get());
+  const LayerParameter& layer_param = train_data_layer->layer_param();
+  int seq_length = layer_param.memory_data_param().batch_size();
+  CHECK_EQ(TotalLength % seq_length, 0);
 
-  solver->PreSolve();
+  // Initialize bias for the forget gate to 5 as described in the clockwork RNN paper
+  const vector<shared_ptr<Layer<double> > >& layers = train_net->layers();
+  for (int i = 0; i < layers.size(); ++i) {
+    if (strcmp(layers[i]->type(), "Lstm") != 0) {
+      continue;
+    }
+    const int h = layers[i]->layer_param().lstm_param().num_output();
+    shared_ptr<Blob<double> > bias = layers[i]->blobs()[2];
+    caffe_set(h, 5.0, bias->mutable_cpu_data() + h);
+  }
+
   // Set device id and mode
   if (solver_param.solver_mode() == caffe::SolverParameter_SolverMode_GPU) {
     LOG(INFO) << "Use GPU with device ID " << solver_param.device_id();
@@ -44,99 +69,55 @@ int main(int argc, char** argv)
     Caffe::set_mode(Caffe::CPU);
   }
 
-  const unsigned char input = 0;
-  Datum datum;
-  datum.set_channels(1);
-  datum.set_width(1);
-  datum.set_height(1);
-  datum.set_data(&input, 1);
+  vector<int> sequence_shape(1, TotalLength);
+  vector<int> data_shape(1, seq_length);
+  Blob<double> sequence(sequence_shape);
+  Blob<double> data(data_shape);
+  Blob<double> clip(data_shape);
+  caffe_set(seq_length, 1.0, clip.mutable_cpu_data());
 
-  vector<Datum> data;
-  vector<vector<double> > labels;
-
-  // Scale data to lie on [-1, 1]
+  // Construct data 
   double mean = 0;
   double max_abs = 0;
-  for (int i = 0; i < SeqLength; ++i) {
+  for (int i = 0; i < TotalLength; ++i) {
     double val = f_x(i * 0.01);
     max_abs = max(max_abs, abs(val));
   }
-
-  // Subtract mean
-  for (int i = 0; i < SeqLength; ++i) {
+  for (int i = 0; i < TotalLength; ++i) {
     mean += f_x(i * 0.01) / max_abs;
   }
-  mean /= SeqLength;
-
-  // Make t
-  for (int i = 0; i < SeqLength; ++i) {
-    vector<double> l;
-    double y = f_x(i*0.01) / max_abs - mean;
-    l.push_back(y);
-    data.push_back(datum);
-    labels.push_back(l);
+  mean /= TotalLength;
+  for (int i = 0; i < TotalLength; ++i) {
+    sequence.mutable_cpu_data()[i] = f_x(i*0.01) / max_abs - mean;
   }
-
-  // Make mini-batches
-  const vector<shared_ptr<Layer<double> > >& layers = train_net->layers();
-  const LayerParameter& layer_param = layers[0]->layer_param();
-  int batchsize = layer_param.memory_data_param().batch_size();
-  CHECK_EQ(SeqLength % batchsize, 0) << "sequence length should be"
-    "divided by batchsize";
-  
-  vector<vector<Datum> > batch_data;
-  vector<vector<vector<double> > > batch_labels;
-
-  for (int i = 0; i < SeqLength / batchsize; ++i) {
-    vector<Datum> d;
-    vector<vector<double> > l;
-
-    for (int j = 0; j < batchsize; ++j) {
-      d.push_back(datum);
-      int idx = i * batchsize + j;
-      vector<double> tmp;
-      tmp.push_back(labels[idx].at(0));
-      l.push_back(tmp);
-    }
-
-    batch_data.push_back(d);
-    batch_labels.push_back(l);
-  }
-
 
   // Training
-  vector<double> losses;
-  double smoothed_loss = 0;
-
-  Caffe::set_phase(Caffe::TRAIN);
   int iter = 0;
-  while(!solver->IsFinished()) {
-    int batch_idx = iter % (SeqLength / batchsize);
-
-    vector<Datum>& batch_d = batch_data[batch_idx];
-    vector<vector< double> >& batch_l = batch_labels[batch_idx];
-
-    ((SeqMemoryDataLayer<double>*)layers[0].get())->DataFetch(
-      batch_d, batch_l, batch_idx == 0);
-    solver->SolveIter(smoothed_loss, losses);
+  double dummy;
+  while(iter < solver_param.max_iter()) {
+    int seq_idx = iter % (TotalLength / seq_length);
+    clip.mutable_cpu_data()[0] = seq_idx == 0 ? 0.0 : 1.0;
+    train_data_layer->Reset(data.mutable_cpu_data(), 
+      sequence.mutable_cpu_data() + sequence.offset(seq_idx * seq_length), 
+      seq_length);
+    train_clip_layer->Reset(clip.mutable_cpu_data(), &dummy, seq_length);
+    solver->Step(1);
     iter++;
   }
 
   // Output Test
-  Caffe::set_phase(Caffe::TEST);
   ofstream log_file;
   log_file.open(result_path, std::fstream::out);
   test_net->ShareTrainedLayersWith(train_net.get());
   vector<Blob<double>* > bottom;
-  const vector<shared_ptr<Layer<double> > >& test_layers = test_net->layers();
-  for (int i = 0; i < SeqLength; ++i) { 
-    ((SeqMemoryDataLayer<double>*)test_layers[0].get())->DataFetch(datum, i == 0);
-    const vector<Blob<double>* >& result = test_net->Forward(bottom);
-    CHECK_EQ(result.size(), 1);
-    const double* output = result[0]->cpu_data();
-    CHECK_EQ(result[0]->count(), 1);
-    vector<double>& l = labels[i];
-    log_file << l[0] << " " << output[0] << endl;
+  for (int i = 0; i < TotalLength; ++i) { 
+    double clip = i == 0 ? 0.0 : 1.0;
+    test_data_layer->Reset(data.mutable_cpu_data(), &dummy, 1);
+    test_clip_layer->Reset(&clip, &dummy, 1);
+    const vector<Blob<double>* >& pred = test_net->Forward(bottom);
+    CHECK_EQ(pred.size(), 1);
+    CHECK_EQ(pred[0]->count(), 1);
+    log_file << sequence.cpu_data()[i] << " " << *pred[0]->cpu_data() << endl;
   }
   
   log_file.close();

@@ -26,7 +26,7 @@ We assume that you already have downloaded the ImageNet training data and valida
 
 You will first need to prepare some auxiliary data for training. This data can be downloaded by:
 
-    ./data/get_ilsvrc_aux.sh
+    ./data/ilsvrc12/get_ilsvrc_aux.sh
 
 The training and validation input are described in `train.txt` and `val.txt` as text listing all the files and their labels. Note that we use a different indexing for labels than the ILSVRC devkit: we sort the synset names in their ASCII order, and then label them from 0 to 999. See `synset_words.txt` for the synset/name mapping.
 
@@ -67,7 +67,7 @@ We will also lay out a protocol buffer for running the solver. Let's make a few 
 * We will run in batches of 256, and run a total of 450,000 iterations (about 90 epochs).
 * For every 1,000 iterations, we test the learned net on the validation data.
 * We set the initial learning rate to 0.01, and decrease it every 100,000 iterations (about 20 epochs).
-* Information will be displayed every 20 epochs.
+* Information will be displayed every 20 iterations.
 * The network will be trained with momentum 0.9 and a weight decay of 0.0005.
 * For every 10,000 iterations, we will take a snapshot of the current status.
 
@@ -91,9 +91,9 @@ Resume Training?
 
 We all experience times when the power goes out, or we feel like rewarding ourself a little by playing Battlefield (does anyone still remember Quake?). Since we are snapshotting intermediate results during training, we will be able to resume from snapshots. This can be done as easy as:
 
-    ./build/tools/caffe train --solver=models/bvlc_reference_caffenet/solver.prototxt --snapshot=models/bvlc_reference_caffenet/caffenet_train_10000.solverstate
+    ./build/tools/caffe train --solver=models/bvlc_reference_caffenet/solver.prototxt --snapshot=models/bvlc_reference_caffenet/caffenet_train_iter_10000.solverstate
 
-where in the script `caffenet_train_10000.solverstate` is the solver state snapshot that stores all necessary information to recover the exact solver state (including the parameters, momentum history, etc).
+where in the script `caffenet_train_iter_10000.solverstate` is the solver state snapshot that stores all necessary information to recover the exact solver state (including the parameters, momentum history, etc).
 
 Parting Words
 -------------

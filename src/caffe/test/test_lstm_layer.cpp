@@ -22,17 +22,21 @@ class LstmLayerTest : public MultiDeviceTest<TypeParam> {
   typedef typename TypeParam::Dtype Dtype;
  protected:
   LstmLayerTest()
-      : blob_bottom_(new Blob<Dtype>(2, 3, 4, 5)),
+      : blob_bottom_(new Blob<Dtype>(12, 10, 2, 3)),
+        blob_bottom2_(new Blob<Dtype>(12, 1, 1, 1)),
         blob_top_(new Blob<Dtype>()) {
     // fill the values
     FillerParameter filler_param;
+    filler_param.set_min(-0.1);
+    filler_param.set_max(0.1);
     UniformFiller<Dtype> filler(filler_param);
     filler.Fill(this->blob_bottom_);
-    blob_bottom_vec_.push_back(blob_bottom_);
+    caffe_set<Dtype>(blob_bottom2_->count(), Dtype(0), blob_bottom2_->mutable_cpu_data());
     blob_top_vec_.push_back(blob_top_);
   }
-  virtual ~LstmLayerTest() { delete blob_bottom_; delete blob_top_; }
+  virtual ~LstmLayerTest() { delete blob_bottom_; delete blob_bottom2_; delete blob_top_; }
   Blob<Dtype>* const blob_bottom_;
+  Blob<Dtype>* const blob_bottom2_;
   Blob<Dtype>* const blob_top_;
   vector<Blob<Dtype>*> blob_bottom_vec_;
   vector<Blob<Dtype>*> blob_top_vec_;
@@ -40,23 +44,7 @@ class LstmLayerTest : public MultiDeviceTest<TypeParam> {
 
 TYPED_TEST_CASE(LstmLayerTest, TestDtypesAndDevices);
 
-TYPED_TEST(LstmLayerTest, TestSetUp) {
-  typedef typename TypeParam::Dtype Dtype;
-  LayerParameter layer_param;
-  InnerProductParameter* inner_product_param =
-      layer_param.mutable_inner_product_param();
-  inner_product_param->set_num_output(10);
-  shared_ptr<LstmLayer<Dtype> > layer(
-      new LstmLayer<Dtype>(layer_param));
-  layer->SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
-  EXPECT_EQ(this->blob_top_->num(), 2);
-  EXPECT_EQ(this->blob_top_->height(), 1);
-  EXPECT_EQ(this->blob_top_->width(), 1);
-  EXPECT_EQ(this->blob_top_->channels(), 10);
-}
-
-/*
-TYPED_TEST(LstmLayerTest, TestForward) {
+TYPED_TEST(LstmLayerTest, TestGradientDefault) {
   typedef typename TypeParam::Dtype Dtype;
   bool IS_VALID_CUDA = false;
 #ifndef CPU_ONLY
@@ -65,51 +53,144 @@ TYPED_TEST(LstmLayerTest, TestForward) {
   if (Caffe::mode() == Caffe::CPU ||
       sizeof(Dtype) == 4 || IS_VALID_CUDA) {
     LayerParameter layer_param;
-    LstmParameter* inner_product_param =
-        layer_param.mutable_inner_product_param();
-    inner_product_param->set_num_output(10);
-    inner_product_param->mutable_weight_filler()->set_type("uniform");
-    inner_product_param->mutable_bias_filler()->set_type("uniform");
-    inner_product_param->mutable_bias_filler()->set_min(1);
-    inner_product_param->mutable_bias_filler()->set_max(2);
-    shared_ptr<LstmLayer<Dtype> > layer(
-        new LstmLayer<Dtype>(layer_param));
-    layer->SetUp(this->blob_bottom_vec_, &(this->blob_top_vec_));
-    layer->Forward(this->blob_bottom_vec_, &(this->blob_top_vec_));
-    const Dtype* data = this->blob_top_->cpu_data();
-    const int count = this->blob_top_->count();
-    for (int i = 0; i < count; ++i) {
-      EXPECT_GE(data[i], 1.);
-    }
-  } else {
-    LOG(ERROR) << "Skipping test due to old architecture.";
-  }
-}
-*/
+    LSTMParameter* lstm_param =
+        layer_param.mutable_lstm_param();
+    lstm_param->set_num_output(5);
+    lstm_param->mutable_weight_filler()->set_type("uniform");
+    lstm_param->mutable_weight_filler()->set_min(-0.01);
+    lstm_param->mutable_weight_filler()->set_max(0.01);
+    lstm_param->mutable_bias_filler()->set_type("constant");
+    lstm_param->mutable_bias_filler()->set_value(0);
+    this->blob_bottom_vec_.clear();
+    this->blob_bottom_vec_.push_back(this->blob_bottom_);
 
-TYPED_TEST(LstmLayerTest, TestGradient) {
-  typedef typename TypeParam::Dtype Dtype;
-  bool IS_VALID_CUDA = false;
-#ifndef CPU_ONLY
-  IS_VALID_CUDA = CAFFE_TEST_CUDA_PROP.major >= 2;
-#endif
-  if (Caffe::mode() == Caffe::CPU ||
-      sizeof(Dtype) == 4 || IS_VALID_CUDA) {
-    LayerParameter layer_param;
-    InnerProductParameter* inner_product_param =
-        layer_param.mutable_inner_product_param();
-    inner_product_param->set_num_output(10);
-    inner_product_param->mutable_weight_filler()->set_type("gaussian");
-    inner_product_param->mutable_bias_filler()->set_type("gaussian");
-    inner_product_param->mutable_bias_filler()->set_min(1);
-    inner_product_param->mutable_bias_filler()->set_max(2);
     LstmLayer<Dtype> layer(layer_param);
     GradientChecker<Dtype> checker(1e-2, 1e-3);
-    checker.CheckGradientExhaustive(&layer, &(this->blob_bottom_vec_),
-        &(this->blob_top_vec_));
+    checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
+        this->blob_top_vec_, 0);
   } else {
     LOG(ERROR) << "Skipping test due to old architecture.";
   }
 }
 
+TYPED_TEST(LstmLayerTest, TestGradientBatchDefault) {
+  typedef typename TypeParam::Dtype Dtype;
+  bool IS_VALID_CUDA = false;
+#ifndef CPU_ONLY
+  IS_VALID_CUDA = CAFFE_TEST_CUDA_PROP.major >= 2;
+#endif
+  if (Caffe::mode() == Caffe::CPU ||
+      sizeof(Dtype) == 4 || IS_VALID_CUDA) {
+    LayerParameter layer_param;
+    LSTMParameter* lstm_param =
+        layer_param.mutable_lstm_param();
+    lstm_param->set_num_output(5);
+    lstm_param->set_batch_size(3);
+    lstm_param->mutable_weight_filler()->set_type("uniform");
+    lstm_param->mutable_weight_filler()->set_min(-0.01);
+    lstm_param->mutable_weight_filler()->set_max(0.01);
+    lstm_param->mutable_bias_filler()->set_type("constant");
+    lstm_param->mutable_bias_filler()->set_value(0);
+    this->blob_bottom_vec_.clear();
+    this->blob_bottom_vec_.push_back(this->blob_bottom_);
+
+    LstmLayer<Dtype> layer(layer_param);
+    GradientChecker<Dtype> checker(1e-2, 1e-3);
+    checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
+        this->blob_top_vec_, 0);
+  } else {
+    LOG(ERROR) << "Skipping test due to old architecture.";
+  }
+}
+
+TYPED_TEST(LstmLayerTest, TestGradientClipMask) {
+  typedef typename TypeParam::Dtype Dtype;
+  bool IS_VALID_CUDA = false;
+#ifndef CPU_ONLY
+  IS_VALID_CUDA = CAFFE_TEST_CUDA_PROP.major >= 2;
+#endif
+  if (Caffe::mode() == Caffe::CPU ||
+      sizeof(Dtype) == 4 || IS_VALID_CUDA) {
+    LayerParameter layer_param;
+    LSTMParameter* lstm_param =
+        layer_param.mutable_lstm_param();
+    lstm_param->set_num_output(5);
+    lstm_param->mutable_weight_filler()->set_type("uniform");
+    lstm_param->mutable_weight_filler()->set_min(-0.01);
+    lstm_param->mutable_weight_filler()->set_max(0.01);
+    lstm_param->mutable_bias_filler()->set_type("constant");
+    lstm_param->mutable_bias_filler()->set_value(0);
+
+    this->blob_bottom2_->mutable_cpu_data()[0]  = 0;
+    this->blob_bottom2_->mutable_cpu_data()[1]  = 1;
+    this->blob_bottom2_->mutable_cpu_data()[2]  = 1;
+    this->blob_bottom2_->mutable_cpu_data()[3]  = 0;
+    this->blob_bottom2_->mutable_cpu_data()[4]  = 1;
+    this->blob_bottom2_->mutable_cpu_data()[5]  = 1;
+    this->blob_bottom2_->mutable_cpu_data()[6]  = 1;
+    this->blob_bottom2_->mutable_cpu_data()[7]  = 0;
+    this->blob_bottom2_->mutable_cpu_data()[8]  = 1;
+    this->blob_bottom2_->mutable_cpu_data()[9]  = 1;
+    this->blob_bottom2_->mutable_cpu_data()[10] = 0;
+    this->blob_bottom2_->mutable_cpu_data()[11] = 1;
+    
+    this->blob_bottom_vec_.clear();
+    this->blob_bottom_vec_.push_back(this->blob_bottom_);
+    this->blob_bottom_vec_.push_back(this->blob_bottom2_);
+    LstmLayer<Dtype> layer(layer_param);
+    GradientChecker<Dtype> checker(1e-2, 1e-3);
+    checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
+        this->blob_top_vec_, 0);
+  } else {
+    LOG(ERROR) << "Skipping test due to old architecture.";
+  }
+}
+
+TYPED_TEST(LstmLayerTest, TestGradientBatchClipMask) {
+  typedef typename TypeParam::Dtype Dtype;
+  bool IS_VALID_CUDA = false;
+#ifndef CPU_ONLY
+  IS_VALID_CUDA = CAFFE_TEST_CUDA_PROP.major >= 2;
+#endif
+  if (Caffe::mode() == Caffe::CPU ||
+      sizeof(Dtype) == 4 || IS_VALID_CUDA) {
+    LayerParameter layer_param;
+    LSTMParameter* lstm_param =
+        layer_param.mutable_lstm_param();
+    lstm_param->set_num_output(5);
+    lstm_param->set_batch_size(3);
+    lstm_param->mutable_weight_filler()->set_type("uniform");
+    lstm_param->mutable_weight_filler()->set_min(-0.01);
+    lstm_param->mutable_weight_filler()->set_max(0.01);
+    lstm_param->mutable_bias_filler()->set_type("constant");
+    lstm_param->mutable_bias_filler()->set_value(0);
+
+    // t = 0
+    this->blob_bottom2_->mutable_cpu_data()[0]  = 0;
+    this->blob_bottom2_->mutable_cpu_data()[1]  = 0;
+    this->blob_bottom2_->mutable_cpu_data()[2]  = 0;
+    // t = 1
+    this->blob_bottom2_->mutable_cpu_data()[3]  = 1;
+    this->blob_bottom2_->mutable_cpu_data()[4]  = 1;
+    this->blob_bottom2_->mutable_cpu_data()[5]  = 0;
+    // t = 2
+    this->blob_bottom2_->mutable_cpu_data()[6]  = 1;
+    this->blob_bottom2_->mutable_cpu_data()[7]  = 0;
+    this->blob_bottom2_->mutable_cpu_data()[8]  = 1;
+    // t = 3
+    this->blob_bottom2_->mutable_cpu_data()[9]  = 0;
+    this->blob_bottom2_->mutable_cpu_data()[10] = 1;
+    this->blob_bottom2_->mutable_cpu_data()[11] = 1;
+    
+    this->blob_bottom_vec_.clear();
+    this->blob_bottom_vec_.push_back(this->blob_bottom_);
+    this->blob_bottom_vec_.push_back(this->blob_bottom2_);
+    LstmLayer<Dtype> layer(layer_param);
+    GradientChecker<Dtype> checker(1e-2, 1e-3);
+    checker.CheckGradientExhaustive(&layer, this->blob_bottom_vec_,
+        this->blob_top_vec_, 0);
+  } else {
+    LOG(ERROR) << "Skipping test due to old architecture.";
+  }
+}
 }  // namespace caffe

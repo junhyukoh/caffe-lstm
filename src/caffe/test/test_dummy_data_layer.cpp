@@ -10,13 +10,10 @@
 
 #include "caffe/test/test_caffe_main.hpp"
 
-using std::string;
-using std::stringstream;
-
 namespace caffe {
 
 template <typename Dtype>
-class DummyDataLayerTest : public ::testing::Test {
+class DummyDataLayerTest : public CPUDeviceTest<Dtype> {
  protected:
   DummyDataLayerTest()
       : blob_top_a_(new Blob<Dtype>()),
@@ -47,7 +44,6 @@ class DummyDataLayerTest : public ::testing::Test {
 TYPED_TEST_CASE(DummyDataLayerTest, TestDtypes);
 
 TYPED_TEST(DummyDataLayerTest, TestOneTopConstant) {
-  Caffe::set_mode(Caffe::CPU);
   LayerParameter param;
   DummyDataParameter* dummy_data_param = param.mutable_dummy_data_param();
   dummy_data_param->add_num(5);
@@ -56,7 +52,7 @@ TYPED_TEST(DummyDataLayerTest, TestOneTopConstant) {
   dummy_data_param->add_width(4);
   this->blob_top_vec_.resize(1);
   DummyDataLayer<TypeParam> layer(param);
-  layer.SetUp(this->blob_bottom_vec_, &this->blob_top_vec_);
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
   EXPECT_EQ(this->blob_top_a_->num(), 5);
   EXPECT_EQ(this->blob_top_a_->channels(), 3);
   EXPECT_EQ(this->blob_top_a_->height(), 2);
@@ -68,7 +64,7 @@ TYPED_TEST(DummyDataLayerTest, TestOneTopConstant) {
       EXPECT_EQ(0, this->blob_top_vec_[i]->cpu_data()[j]);
     }
   }
-  layer.Forward(this->blob_bottom_vec_, &this->blob_top_vec_);
+  layer.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
   for (int i = 0; i < this->blob_top_vec_.size(); ++i) {
     for (int j = 0; j < this->blob_top_vec_[i]->count(); ++j) {
       EXPECT_EQ(0, this->blob_top_vec_[i]->cpu_data()[j]);
@@ -77,7 +73,6 @@ TYPED_TEST(DummyDataLayerTest, TestOneTopConstant) {
 }
 
 TYPED_TEST(DummyDataLayerTest, TestTwoTopConstant) {
-  Caffe::set_mode(Caffe::CPU);
   LayerParameter param;
   DummyDataParameter* dummy_data_param = param.mutable_dummy_data_param();
   dummy_data_param->add_num(5);
@@ -92,7 +87,7 @@ TYPED_TEST(DummyDataLayerTest, TestTwoTopConstant) {
   data_filler_param->set_value(7);
   this->blob_top_vec_.resize(2);
   DummyDataLayer<TypeParam> layer(param);
-  layer.SetUp(this->blob_bottom_vec_, &this->blob_top_vec_);
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
   EXPECT_EQ(this->blob_top_a_->num(), 5);
   EXPECT_EQ(this->blob_top_a_->channels(), 3);
   EXPECT_EQ(this->blob_top_a_->height(), 2);
@@ -107,7 +102,7 @@ TYPED_TEST(DummyDataLayerTest, TestTwoTopConstant) {
       EXPECT_EQ(7, this->blob_top_vec_[i]->cpu_data()[j]);
     }
   }
-  layer.Forward(this->blob_bottom_vec_, &this->blob_top_vec_);
+  layer.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
   for (int i = 0; i < this->blob_top_vec_.size(); ++i) {
     for (int j = 0; j < this->blob_top_vec_[i]->count(); ++j) {
       EXPECT_EQ(7, this->blob_top_vec_[i]->cpu_data()[j]);
@@ -116,7 +111,6 @@ TYPED_TEST(DummyDataLayerTest, TestTwoTopConstant) {
 }
 
 TYPED_TEST(DummyDataLayerTest, TestThreeTopConstantGaussianConstant) {
-  Caffe::set_mode(Caffe::CPU);
   LayerParameter param;
   DummyDataParameter* dummy_data_param = param.mutable_dummy_data_param();
   dummy_data_param->add_num(5);
@@ -134,7 +128,7 @@ TYPED_TEST(DummyDataLayerTest, TestThreeTopConstantGaussianConstant) {
   FillerParameter* data_filler_param_c = dummy_data_param->add_data_filler();
   data_filler_param_c->set_value(9);
   DummyDataLayer<TypeParam> layer(param);
-  layer.SetUp(this->blob_bottom_vec_, &this->blob_top_vec_);
+  layer.SetUp(this->blob_bottom_vec_, this->blob_top_vec_);
   EXPECT_EQ(this->blob_top_a_->num(), 5);
   EXPECT_EQ(this->blob_top_a_->channels(), 3);
   EXPECT_EQ(this->blob_top_a_->height(), 2);
@@ -160,7 +154,7 @@ TYPED_TEST(DummyDataLayerTest, TestThreeTopConstantGaussianConstant) {
   }
 
   // Do a Forward pass to fill in Blob b with Gaussian data.
-  layer.Forward(this->blob_bottom_vec_, &this->blob_top_vec_);
+  layer.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
   for (int i = 0; i < this->blob_top_a_->count(); ++i) {
     EXPECT_EQ(7, this->blob_top_a_->cpu_data()[i]);
   }
@@ -180,7 +174,7 @@ TYPED_TEST(DummyDataLayerTest, TestThreeTopConstantGaussianConstant) {
 
   // Do another Forward pass to fill in Blob b with Gaussian data again,
   // checking that we get different values.
-  layer.Forward(this->blob_bottom_vec_, &this->blob_top_vec_);
+  layer.Forward(this->blob_bottom_vec_, this->blob_top_vec_);
   for (int i = 0; i < this->blob_top_a_->count(); ++i) {
     EXPECT_EQ(7, this->blob_top_a_->cpu_data()[i]);
   }
