@@ -1,14 +1,7 @@
-# Caffe-LSTM
-This is LSTM implementation based on [Caffe](http://caffe.berkeleyvision.org). <br />
-
-# News
-  * The official Caffe is going to support LSTM/RNN. See the following link for the details [LSTM Pull Request](https://github.com/BVLC/caffe/pull/1873)
-
-# TODO
-  * Mini-batch update
-  * [Dropout](http://arxiv.org/pdf/1409.2329.pdf)
-  * Examples for the real datasets (i.e., Handwriting recognition/Speech recognition)
-  * Peephole connection
+# LSTM Implementation in [Caffe](http://caffe.berkeleyvision.org)
+  * This is my personal implementation of LSTM in Caffe with minimal modifications. <br />
+  * The official Caffe is going to support LSTM/RNN (not my code). <br />
+  * See the following link for the details [LSTM Pull Request](https://github.com/BVLC/caffe/pull/2033) <br />
 
 # Example
 An example code is in /examples/lstm_sequence/. <br />
