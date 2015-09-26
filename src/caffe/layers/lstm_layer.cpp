@@ -322,14 +322,14 @@ void LstmLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   if (this->param_propagate_down_[0]) {
     // Gradient w.r.t. input-to-hidden weight
     caffe_cpu_gemm(CblasTrans, CblasNoTrans, 4*H_, I_, T_*N_, (Dtype)1.,
-        pre_gate_diff, bottom_data, (Dtype)0., this->blobs_[0]->mutable_cpu_diff());
+        pre_gate_diff, bottom_data, (Dtype)1., this->blobs_[0]->mutable_cpu_diff());
   }
 
   if (this->param_propagate_down_[1]) {
     // Gradient w.r.t. hidden-to-hidden weight
     caffe_cpu_gemm(CblasTrans, CblasNoTrans, 4*H_, H_, (T_-1)*N_, (Dtype)1.,
         pre_gate_diff + pre_gate_.offset(1), top_data, 
-        (Dtype)0., this->blobs_[1]->mutable_cpu_diff());
+        (Dtype)1., this->blobs_[1]->mutable_cpu_diff());
 
     // Add Gradient from previous time-step
     caffe_cpu_gemm(CblasTrans, CblasNoTrans, 4*H_, H_, 1, (Dtype)1.,
@@ -339,7 +339,7 @@ void LstmLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   if (this->param_propagate_down_[2]) { 
     // Gradient w.r.t. bias
     caffe_cpu_gemv(CblasTrans, T_*N_, 4*H_, (Dtype)1., pre_gate_diff,
-        bias_multiplier_.cpu_data(), (Dtype)0.,
+        bias_multiplier_.cpu_data(), (Dtype)1.,
         this->blobs_[2]->mutable_cpu_diff());
   }
   if (propagate_down[0]) {

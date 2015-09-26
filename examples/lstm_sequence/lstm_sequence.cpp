@@ -4,9 +4,11 @@
 #include <math.h>
 #include <iostream>
 
+using std::vector;
+using std::max;
+using std::abs;
+using boost::shared_ptr;
 using namespace caffe;
-using namespace std;
-
 
 double f_x(double t) {
   return 0.5*sin(2*t) - 0.05*cos(17*t + 0.8) 
@@ -106,7 +108,7 @@ int main(int argc, char** argv)
   }
 
   // Output Test
-  ofstream log_file;
+  std::ofstream log_file;
   log_file.open(result_path, std::fstream::out);
   test_net->ShareTrainedLayersWith(train_net.get());
   vector<Blob<double>* > bottom;
@@ -117,7 +119,7 @@ int main(int argc, char** argv)
     const vector<Blob<double>* >& pred = test_net->Forward(bottom);
     CHECK_EQ(pred.size(), 1);
     CHECK_EQ(pred[0]->count(), 1);
-    log_file << sequence.cpu_data()[i] << " " << *pred[0]->cpu_data() << endl;
+    log_file << sequence.cpu_data()[i] << " " << *pred[0]->cpu_data() << std::endl;
   }
   
   log_file.close();
