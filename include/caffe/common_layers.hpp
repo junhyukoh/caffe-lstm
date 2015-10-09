@@ -398,16 +398,12 @@ class LstmLayer : public Layer<Dtype> {
   int N_; // batch size
   
   Dtype clipping_threshold_; // threshold for clipped gradient
-  
   Blob<Dtype> bias_multiplier_;
-  Blob<Dtype> clip_multiplier_;
 
-  Blob<Dtype> top_;
+  Blob<Dtype> top_;       // output values
+  Blob<Dtype> cell_;      // memory cell
   Blob<Dtype> pre_gate_;  // gate values before nonlinearity
   Blob<Dtype> gate_;      // gate values after nonlinearity
-  Blob<Dtype> cell_;      // memory cell
-  Blob<Dtype> tanh_cell_; // tanh(memory cell)
-  Blob<Dtype> clip_mask_; // mask for sequence clipping
 
   Blob<Dtype> c_0_; // previous cell state value
   Blob<Dtype> h_0_; // previous hidden activation value
@@ -415,9 +411,8 @@ class LstmLayer : public Layer<Dtype> {
   Blob<Dtype> h_T_; // next hidden activation value
 
   // intermediate values
-  Blob<Dtype> fdc_;
-  Blob<Dtype> ig_;
-  Blob<Dtype> clipped_;
+  Blob<Dtype> h_to_gate_;
+  Blob<Dtype> h_to_h_;
 };
 
 /**
