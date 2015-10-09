@@ -1,7 +1,13 @@
 # LSTM Implementation in [Caffe](http://caffe.berkeleyvision.org)
-  * This is my personal implementation of LSTM in Caffe with minimal modifications. <br />
-  * The official Caffe is going to support LSTM/RNN (not my code). <br />
-  * See the following link for the details [LSTM Pull Request](https://github.com/BVLC/caffe/pull/2033) <br />
+ Note that [Jeff Donahue's implementation](https://github.com/BVLC/caffe/pull/2033) will be merged to Caffe (not this code).
+  * Jeff's code is more modularized, while this code is optimized for LSTM.
+  * This code computes gradient w.r.t. recurrent weights in a single matrix computation.
+  * Speed comparison (GTX Titan X, 3-layer LSTM with 2048 units, batch size of 20)
+
+  | Code           | Forward(ms) | Backward(ms)  | Total (ms) |
+  | -------------- |-------------|---------------|------------|
+  | **This code**  | **248**     | **291**       | **539**    |
+  | Jeff's code    | 264         | 462           | 726        |
 
 # Example
 An example code is in /examples/lstm_sequence/. <br />
