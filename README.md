@@ -30,7 +30,7 @@ This code computes gradient w.r.t. recurrent weights in a single matrix computat
   | Code           | Forward(ms) | Backward(ms)  | Total (ms) |
   | -------------- |-------------|---------------|------------|
   | **This code**  | **29**      | **26**        | **55**     |
-  | Jeff's code    | 32          | 113           | 145        |
+  | Jeff's code    | 30          | 61            | 91         |
 
 
 # Example
