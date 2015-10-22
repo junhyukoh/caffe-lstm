@@ -156,8 +156,8 @@ void LstmLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     caffe_set(h_0_.count(), Dtype(0.), h_0_.mutable_cpu_data());
   }
   if( !clip_w ) {
-	caffe_set(c_0_w.count(), Dtype(0.), c_0_w.mutable_cpu_data());
-	caffe_set(h_0_w.count(), Dtype(0.), h_0_w.mutable_cpu_data());
+	caffe_set(c_0_w_.count(), Dtype(0.), c_0_w_.mutable_cpu_data());
+	caffe_set(h_0_w_.count(), Dtype(0.), h_0_w_.mutable_cpu_data());
   }
 
   // Compute input to hidden forward propagation
@@ -265,13 +265,13 @@ void LstmLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     Dtype* pre_gate_diff_t = pre_gate_diff + pre_gate_.offset(t);
     Dtype* dh_t_1 = t > 0 ? top_diff + top_.offset(t-1) : h_0_.mutable_cpu_diff();
     Dtype* dc_t_1 = t > 0 ? cell_diff + cell_.offset(t-1) : c_0_.mutable_cpu_diff();
-	Dtype* dh_t_w = t >= W_ ? top_diff + top_.offset( t - W_ ) : (h_0_w.mutable_cpu_diff( ) + h_0_w.offset( t ));
-	Dtype* dc_t_w = t >= W_ ? cell_diff + cell_.offset( t - W_ ) : (c_0_w.mutable_cpu_diff( ) + c_0_w.offset( t ));
+	Dtype* dh_t_w = t >= W_ ? top_diff + top_.offset( t - W_ ) : (h_0_w_.mutable_cpu_diff( ) + h_0_w_.offset( t ));
+	Dtype* dc_t_w = t >= W_ ? cell_diff + cell_.offset( t - W_ ) : (c_0_w_.mutable_cpu_diff( ) + c_0_w_.offset( t ));
 	const Dtype* clip_t = clip ? clip + bottom[1]->offset( t ) : NULL;
 	const Dtype* clip_w_t = clip_w ? clip_w + bottom[2]->offset( t ) : NULL;
     const Dtype* c_t = cell_data + cell_.offset(t);
 	const Dtype* c_t_1 = t > 0 ? cell_data + cell_.offset( t - 1 ) : c_0_.cpu_data( );
-	const Dtype* c_t_w = t >= W_ ? cell_data + cell_.offset( t - W_ ) : (c_0_w.cpu_data( ) + c_0_w.offset( t ));
+	const Dtype* c_t_w = t >= W_ ? cell_data + cell_.offset( t - W_ ) : (c_0_w_.cpu_data( ) + c_0_w_.offset( t ));
     const Dtype* gate_t = gate_data + gate_.offset(t);
 
     for (int n = 0; n < N_; ++n) {

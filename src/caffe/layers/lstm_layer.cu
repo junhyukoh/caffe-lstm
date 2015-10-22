@@ -194,8 +194,8 @@ void LstmLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     const Dtype* h_t_1 = t > 0 ? (h_t - top_.offset(1)) : h_0_.gpu_data();
     const Dtype* c_t_1 = t > 0 ? (c_t - cell_.offset(1)) : c_0_.gpu_data();
 
-	const Dtype* h_t_w = t >= W_ ? (h_t - top_.offset( W_ )) : (h_0_w.gpu_data( ) + h_0_w.offset( t ));
-	const Dtype* c_t_w = t >= W_ ? (c_t - cell_.offset( W_ )) : (c_0_w.gpu_data() + c_0_w.offset( t ));
+	const Dtype* h_t_w = t >= W_ ? (h_t - top_.offset( W_ )) : (h_0_w_.gpu_data( ) + h_0_w_.offset( t ));
+	const Dtype* c_t_w = t >= W_ ? (c_t - cell_.offset( W_ )) : (c_0_w_.gpu_data() + c_0_w_.offset( t ));
 
     caffe_gpu_gemm(CblasNoTrans, CblasTrans, N_, 5*H_, H_, Dtype(1.), 
         h_t_1, weight_h, Dtype(0.), h_to_gate_.mutable_gpu_data());
