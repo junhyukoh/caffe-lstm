@@ -271,8 +271,8 @@ void LstmLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     LSTMBackward<Dtype><<<CAFFE_GET_BLOCKS(N_*H_), CAFFE_CUDA_NUM_THREADS>>>(
         N_*H_, H_, W_, T_, t, c_t_1, c_t_w, gate_t, c_t, clip_t, clip_w_t, dc_t, dh_t, dc_t_1, dc_t_w, gate_diff_t);
     CUDA_POST_KERNEL_CHECK;
-    ActivationBackward<Dtype><<<CAFFE_GET_BLOCKS(4*N_*H_), CAFFE_CUDA_NUM_THREADS>>>(
-        4*N_*H_, H_, clipping_threshold_, gate_t, gate_diff_t, pre_gate_diff_t);
+    ActivationBackward<Dtype><<<CAFFE_GET_BLOCKS(5*N_*H_), CAFFE_CUDA_NUM_THREADS>>>(
+        5*N_*H_, H_, clipping_threshold_, gate_t, gate_diff_t, pre_gate_diff_t);
     CUDA_POST_KERNEL_CHECK;
     
     // Backprop errors to the previous time step
