@@ -81,6 +81,7 @@ void LstmLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
   gate_shape.push_back(5);
   gate_shape.push_back(H_);
   h_to_gate_.Reshape(gate_shape);
+  h_to_gate_w_.Reshape( gate_shape );
 }
 
 template <typename Dtype>
