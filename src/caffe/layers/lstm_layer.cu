@@ -212,7 +212,7 @@ void LstmLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
         5*N_*H_, H_, pre_gate_t, gate_t);
     CUDA_POST_KERNEL_CHECK;
     LSTMForward<Dtype><<<CAFFE_GET_BLOCKS(N_*H_), CAFFE_CUDA_NUM_THREADS>>>(
-        N_*H_, H_, W_, t, c_t_1, c_t_w, gate_t, clip_t, clip_t_w, c_t, h_t);
+        N_*H_, H_, W_, t, c_t_1, c_t_w, gate_t, clip_t, clip_w_t, c_t, h_t);
     CUDA_POST_KERNEL_CHECK;
   }
 
