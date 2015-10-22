@@ -395,6 +395,7 @@ message LSTMParameter {
   optional FillerParameter weight_filler = 3; // The filler for weight
   optional FillerParameter bias_filler = 4; // The filler for the bias
   optional uint32 batch_size = 5 [default = 1];
+  optional uint32 width = 6 [default = 2];
 }
 
 // Message that stores parameters used to apply transformation
