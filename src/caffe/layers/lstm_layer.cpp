@@ -256,7 +256,7 @@ void LstmLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   Dtype* gate_diff = gate_.mutable_cpu_diff();
   Dtype* cell_diff = cell_.mutable_cpu_diff();
   
-  caffe_copy( N_*H_*W_, c_T_w.cpu_diff( ), cell_diff + cell_.offset( T_ - W_ ) );
+  caffe_copy( N_*H_*W_, c_T_w_.cpu_diff( ), cell_diff + cell_.offset( T_ - W_ ) );
 
   for (int t = T_-1; t >= 0; --t) {
     Dtype* dh_t = top_diff + top_.offset(t);

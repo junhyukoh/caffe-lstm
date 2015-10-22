@@ -219,8 +219,8 @@ void LstmLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   // Preserve cell state and output value for truncated BPTT
   caffe_copy(N_*H_, cell_data + cell_.offset(T_-1), c_T_.mutable_gpu_data());
   caffe_copy(N_*H_, top_data + top_.offset(T_-1), h_T_.mutable_gpu_data());
-  caffe_copy( N_*H_*W_, cell_data + cell_.offset( T_ - W_ ), c_T_w.mutable_gpu_data() );
-  caffe_copy( N_*H_*W_, top_data + top_.offset( T_ - W_ ), h_T_w.mutable_gpu_data() );
+  caffe_copy( N_*H_*W_, cell_data + cell_.offset( T_ - W_ ), c_T_w_.mutable_gpu_data() );
+  caffe_copy( N_*H_*W_, top_data + top_.offset( T_ - W_ ), h_T_w_.mutable_gpu_data() );
 }
 
 template <typename Dtype>
@@ -250,7 +250,7 @@ void LstmLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   Dtype* gate_diff = gate_.mutable_gpu_diff();
   Dtype* cell_diff = cell_.mutable_gpu_diff();
 
-  caffe_copy( N_*H_*W_, c_T_w.gpu_diff(), cell_diff + cell_.offset( T_ - W_ ) ); 
+  caffe_copy( N_*H_*W_, c_T_w_.gpu_diff(), cell_diff + cell_.offset( T_ - W_ ) ); 
 
   for (int t = T_-1; t >= 0; --t) {
     Dtype* dh_t = top_diff + top_.offset(t);
