@@ -92,7 +92,7 @@ __global__ void LSTMBackward(const int nthreads, const int H, const int W, const
     const Dtype tanh_c = tanh(c);
     const Dtype clip_t = clip ? clip[n] : Dtype(t % W != 0);
 	const Dtype clip_w_t = clip_w ? clip_w[n] : Dtype(t >= W);
-	const Dtype dc_t_1_mult = Dtype(t > T - W);
+	const Dtype dc_t_1_mult = Dtype(t <= T - W);
     Dtype* dc_t_1 = dc_prev + index;
 	Dtype* dc_t_w = dc_prev_w + index;
     Dtype* gate_diff_t = gate_diff + 5*H*n;
