@@ -140,7 +140,11 @@ void LstmLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   Dtype* cell_data = cell_.mutable_gpu_data();
 
   // Initialize previous state
-  if (!clip) {
+  if (clip) {
+    caffe_copy(c_0_.count(), c_T_.gpu_data(), c_0_.mutable_gpu_data());
+    caffe_copy(h_0_.count(), h_T_.gpu_data(), h_0_.mutable_gpu_data());
+  }
+  else {
     caffe_gpu_set(c_0_.count(), Dtype(0.), c_0_.mutable_gpu_data());
     caffe_gpu_set(h_0_.count(), Dtype(0.), h_0_.mutable_gpu_data());
   }

@@ -130,7 +130,11 @@ void LstmLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   Dtype* h_to_gate = h_to_gate_.mutable_cpu_data();
 
   // Initialize previous state
-  if (!clip) {
+  if (clip) {
+    caffe_copy(c_0_.count(), c_T_.cpu_data(), c_0_.mutable_cpu_data());
+    caffe_copy(h_0_.count(), h_T_.cpu_data(), h_0_.mutable_cpu_data());
+  }
+  else {
     caffe_set(c_0_.count(), Dtype(0.), c_0_.mutable_cpu_data());
     caffe_set(h_0_.count(), Dtype(0.), h_0_.mutable_cpu_data());
   }
