@@ -369,6 +369,7 @@ message LayerParameter {
   optional LogParameter log_param = 134;
   optional LRNParameter lrn_param = 118;
   optional LSTMParameter lstm_param = 201;
+  optional Im2WindowsParameter im2windows_param = 202;
   optional MemoryDataParameter memory_data_param = 119;
   optional MVNParameter mvn_param = 120;
   optional PoolingParameter pooling_param = 121;
@@ -396,6 +397,13 @@ message LSTMParameter {
   optional FillerParameter bias_filler = 4; // The filler for the bias
   optional uint32 batch_size = 5 [default = 1];
   optional uint32 width = 6 [default = 2];
+}
+
+message Im2WindowsParameter {
+  optional uint32 window_w = 1;
+  optional uint32 window_h = 2;
+  optional uint32 labels_count = 3;
+  optional bool reversed = 4 [default = false];
 }
 
 // Message that stores parameters used to apply transformation
@@ -692,6 +700,12 @@ message ImageDataParameter {
   // data.
   optional bool mirror = 6 [default = false];
   optional string root_folder = 12 [default = ""];
+  optional uint32 window_h = 13;
+  optional uint32 window_w = 14;
+  optional uint32 max_windows_h = 15;
+  optional uint32 max_windows_w = 16;
+  optional float min_scale = 17;
+  optional float max_scale = 18;
 }
 
 message InfogainLossParameter {

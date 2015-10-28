@@ -118,6 +118,13 @@ void BasePrefetchingDataLayer<Dtype>::Forward_cpu(
         top[1]->mutable_cpu_data());
   }
 
+  if( top.size() == 3 ) {
+	  top[2]->ReshapeLike( batch->box_ );
+	  // Copy the labels.
+	  caffe_copy( batch->box_.count( ), batch->box_.cpu_data( ),
+		  top[2]->mutable_cpu_data( ) );
+  }
+
   prefetch_free_.push(batch);
 }
 
