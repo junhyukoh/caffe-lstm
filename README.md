@@ -1,7 +1,37 @@
 # LSTM Implementation in [Caffe](http://caffe.berkeleyvision.org)
-  * This is my personal implementation of LSTM in Caffe with minimal modifications. <br />
-  * The official Caffe is going to support LSTM/RNN (not my code). <br />
-  * See the following link for the details [LSTM Pull Request](https://github.com/BVLC/caffe/pull/2033) <br />
+ Note that [Jeff Donahue's implementation](https://github.com/BVLC/caffe/pull/2033) will be merged to Caffe (not this code). <br />
+Jeff's code is more modularized, while this code is optimized for LSTM. <br />
+This code computes gradient w.r.t. recurrent weights in a single matrix computation. <br />
+* Speed comparison (Titan X, 3-layer LSTM with 2048 units)
+
+  * Batch size = 20, Length = 100
+  
+  | Code           | Forward(ms) | Backward(ms)  | Total (ms) |
+  | -------------- |-------------|---------------|------------|
+  | **This code**  | **248**     | **291**       | **539**    |
+  | Jeff's code    | 264         | 462           | 726        |
+
+  * Batch size = 4, Length = 100
+  
+  | Code           | Forward(ms) | Backward(ms)  | Total (ms) |
+  | -------------- |-------------|---------------|------------|
+  | **This code**  | **131**     | **118**       | **249**    |
+  | Jeff's code    | 140         | 290           | 430        |
+
+  * Batch size = 20, Length = 20
+  
+  | Code           | Forward(ms) | Backward(ms)  | Total (ms) |
+  | -------------- |-------------|---------------|------------|
+  | **This code**  | **49**      | **59**        | **108**    |
+  | Jeff's code    | 52          | 92            | 144        |
+
+  * Batch size = 4, Length = 20
+  
+  | Code           | Forward(ms) | Backward(ms)  | Total (ms) |
+  | -------------- |-------------|---------------|------------|
+  | **This code**  | **29**      | **26**        | **55**     |
+  | Jeff's code    | 30          | 61            | 91         |
+
 
 # Example
 An example code is in /examples/lstm_sequence/. <br />
