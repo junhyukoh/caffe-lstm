@@ -237,8 +237,8 @@ void DataTransformer<Dtype>::Transform(const cv::Mat& cv_img,
   const int num = transformed_blob->num();
 
   CHECK_EQ(channels, img_channels);
-  CHECK_LE(height, img_height);
-  CHECK_LE(width, img_width);
+  //CHECK_LE(height, img_height);
+  //CHECK_LE(width, img_width);
   CHECK_GE(num, 1);
 
   CHECK(cv_img.depth() == CV_8U) << "Image data type must be unsigned byte";
@@ -287,18 +287,19 @@ void DataTransformer<Dtype>::Transform(const cv::Mat& cv_img,
     cv::Rect roi(w_off, h_off, crop_size, crop_size);
     cv_cropped_img = cv_img(roi);
   } else {
-    CHECK_EQ(img_height, height);
-    CHECK_EQ(img_width, width);
+    //CHECK_EQ(img_height, height);
+    //CHECK_EQ(img_width, width);
   }
 
   CHECK(cv_cropped_img.data);
 
   Dtype* transformed_data = transformed_blob->mutable_cpu_data();
+  caffe_set( transformed_blob->count(), Dtype( 0.0 ), transformed_data );
   int top_index;
-  for (int h = 0; h < height; ++h) {
+  for (int h = 0; h < img_height; ++h) {
     const uchar* ptr = cv_cropped_img.ptr<uchar>(h);
     int img_index = 0;
-    for (int w = 0; w < width; ++w) {
+    for (int w = 0; w < img_width; ++w) {
       for (int c = 0; c < img_channels; ++c) {
         if (do_mirror) {
           top_index = (c * height + h) * width + (width - 1 - w);
