@@ -10,9 +10,9 @@ template <typename Dtype>
 void PermutationLayer<Dtype>::Reshape( const vector<Blob<Dtype>*>& bottom,
 	const vector<Blob<Dtype>*>& top )
 {
-	const int T_ = bottom[0]->shape( 0 );
-	const int N_ = bottom[0]->shape( 1 );
-	const int C_ = bottom[0]->shape( 2 );
+	const int T_ = this->layer_param_.reshape_param( ).shape( ).dim( 0 );
+	const int N_ = bottom[0]->shape( 0 ) / T_;
+	const int C_ = bottom[0]->count() / (T_ * N_);
 	vector<int> top_shape;
 	top_shape.push_back( N_ );
 	top_shape.push_back( C_ );
@@ -24,9 +24,9 @@ template <typename Dtype>
 void PermutationLayer<Dtype>::Forward_cpu( const vector<Blob<Dtype>*>& bottom,
 	const vector<Blob<Dtype>*>& top )
 {
-	const int T_ = bottom[0]->shape( 0 );
-	const int N_ = bottom[0]->shape( 1 );
-	const int C_ = bottom[0]->shape( 2 );
+	const int T_ = this->layer_param_.reshape_param( ).shape( ).dim( 0 );
+	const int N_ = bottom[0]->shape( 0 ) / T_;
+	const int C_ = bottom[0]->count( ) / (T_ * N_);
 	const Dtype* bottom_data = bottom[0]->cpu_data();
 	Dtype* top_data = top[0]->mutable_cpu_data();
 	for( int t = 0; t < T_; ++t ) {
@@ -46,16 +46,16 @@ void PermutationLayer<Dtype>::Backward_cpu( const vector<Blob<Dtype>*>& top,
 	if( !propagate_down[0] ) {
 		return;
 	}
-	const int T_ = bottom[0]->shape( 0 );
-	const int N_ = bottom[0]->shape( 1 );
-	const int C_ = bottom[0]->shape( 2 );
+	const int T_ = this->layer_param_.reshape_param( ).shape( ).dim( 0 );
+	const int N_ = bottom[0]->shape( 0 ) / T_;
+	const int C_ = bottom[0]->count( ) / (T_ * N_);
 	const Dtype* top_diff = top[0]->cpu_diff( );
 	Dtype* bottom_diff = bottom[0]->mutable_cpu_diff( );
-	for( int n = 0; n < N_; ++n ) {
-		for( int c = 0; c < C_; ++c ) {
-			for( int t = 0; t < T_; t++ ) {
-				bottom_diff[bottom[0]->offset( t, n, c )] = *top_diff;
-				++top_diff;
+	for( int t = 0; t < T_; ++t ) {
+		for( int n = 0; n < N_; ++n ) {
+			for( int c = 0; c < C_; c++ ) {
+				*bottom_diff = top_diff[top[0]->offset( n, c, t )];
+				++bottom_diff;
 			}
 		}
 	}
