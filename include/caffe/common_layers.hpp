@@ -549,6 +549,27 @@ namespace caffe
 			const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom );
 	};
 
+	template <typename Dtype>
+	class ReverseLayer : public Layer<Dtype> {
+	public:
+		explicit ReverseLayer( const LayerParameter& param )
+			: Layer<Dtype>( param ) {}
+		virtual void LayerSetUp( const vector<Blob<Dtype>*>& bottom,
+			const vector<Blob<Dtype>*>& top )
+		{}
+		virtual void Reshape( const vector<Blob<Dtype>*>& bottom,
+			const vector<Blob<Dtype>*>& top );
+
+		virtual inline const char* type( ) const { return "Reverse"; }
+		virtual inline int MinBottomBlobs( ) const { return 1; }
+
+	protected:
+		virtual void Forward_cpu( const vector<Blob<Dtype>*>& bottom,
+			const vector<Blob<Dtype>*>& top );
+		virtual void Backward_cpu( const vector<Blob<Dtype>*>& top,
+			const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom );
+	};
+
 	/**
 	* @brief Compute "reductions" -- operations that return a scalar output Blob
 	*        for an input Blob of arbitrary size, such as the sum, absolute sum,
