@@ -1,0 +1,424 @@
+name: "ImageNet"
+layer {
+  name: "images"
+  type: "ImageData"
+  top: "data"
+  top: "label"
+  top: "box"
+  transform_param {
+    scale: 0.00390625
+  }
+  image_data_param {
+    source: "train.txt"
+    root_folder: "../dataset/ILSVRC2015/"
+    batch_size: 200
+    shuffle: true
+    window_h: 1
+    window_w: 1
+    max_windows_h: 256
+    max_windows_w: 256
+    min_scale: 0.3
+    max_scale: 0.9
+  }
+  include {
+    phase: TRAIN
+  }
+}
+
+layer {
+  name: "images"
+  type: "ImageData"
+  top: "data"
+  top: "label"
+  top: "box"
+  transform_param {
+    scale: 0.00390625
+  }
+  image_data_param {
+    source: "val.txt"
+    root_folder: "../dataset/ILSVRC2015/"
+    batch_size: 200
+    shuffle: true
+    window_h: 1
+    window_w: 1
+    max_windows_h: 256
+    max_windows_w: 256
+    min_scale: 0.3
+    max_scale: 0.9
+  }
+  include {
+    phase: TEST
+  }
+}
+layer {
+  name: "silence"
+  type: "Silence"
+  bottom: "box"
+}
+layer {
+  name: "windows1"
+  type: "Im2Windows"
+  bottom: "data"
+  top: "windows1"
+  im2windows_param {
+    window_w: 32
+    window_h: 32
+    labels_count: 1000
+  }
+}
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "windows1"
+  top: "conv1"
+  param {
+    lr_mult: 0
+  }
+  param {
+    lr_mult: 0
+  }
+  convolution_param {
+    num_output: 32
+    kernel_size: 5
+    pad: 0
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "relu1"
+  type: "ReLU"
+  bottom: "pool1"
+  top: "pool1"
+}
+layer {
+  name: "conv2"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2"
+  param {
+    lr_mult: 0
+  }
+  param {
+    lr_mult: 0
+  }
+  convolution_param {
+    num_output: 64
+    kernel_size: 5
+    pad: 0
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "relu2"
+  type: "ReLU"
+  bottom: "pool2"
+  top: "pool2"
+}
+layer {
+  name: "ip1_pretrain"
+  type: "InnerProduct"
+  bottom: "pool2"
+  top: "ip1_pretrain"
+  param {
+    lr_mult: 0
+  }
+  param {
+    lr_mult: 0
+  }
+  inner_product_param {
+    num_output: 1024
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "relu5"
+  type: "ReLU"
+  bottom: "ip1_pretrain"
+  top: "ip1_pretrain"
+}
+layer {
+  name: "ip2_pretrain"
+  type: "InnerProduct"
+  bottom: "ip1_pretrain"
+  top: "ip2_pretrain"
+  param {
+    lr_mult: 0
+  }
+  param {
+    lr_mult: 0
+  }
+  inner_product_param {
+    num_output: 1024
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "relu6"
+  type: "ReLU"
+  bottom: "ip2_pretrain"
+  top: "ip2_pretrain"
+}
+layer {
+  name: "windows1_r"
+  type: "Reverse"
+  bottom: "ip2_pretrain"
+  top: "windows1_r"
+  reshape_param {
+    shape {
+      dim: 64
+    }
+  }
+}
+layer {
+  name: "lstm1"
+  type: "Lstm"
+  bottom: "ip2_pretrain"
+  top: "lstm1"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 1
+  }
+  lstm_param {
+    num_output: 1024
+    batch_size: 200
+    width: 8
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "lstm1_r"
+  type: "Lstm"
+  bottom: "windows1_r"
+  top: "lstm1_r"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 1
+  }
+  lstm_param {
+    num_output: 1024
+    batch_size: 200
+    width: 8
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "lstm1_r_r"
+  type: "Reverse"
+  bottom: "lstm1_r"
+  top: "lstm1_r_r"
+  reshape_param {
+    shape {
+      dim: 64
+    }
+  }
+}
+layer {
+  name: "concat"
+  type: "Concat"
+  bottom: "lstm1"
+  bottom: "lstm1_r_r"
+  top: "lstm1_concat"
+}
+layer {
+  name: "ip1new"
+  type: "InnerProduct"
+  bottom: "lstm1_concat"
+  top: "ip1"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 32
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "relu3"
+  type: "ReLU"
+  bottom: "ip1"
+  top: "ip1"
+}
+layer {
+  name: "permutation1"
+  type: "Permutation"
+  bottom: "ip1"
+  top: "permutation1"
+  reshape_param {
+    shape {
+      dim: 64
+    }
+  }
+}
+layer {
+  name: "ip2new"
+  type: "InnerProduct"
+  bottom: "permutation1"
+  top: "ip2"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 4096
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "relu4"
+  type: "ReLU"
+  bottom: "ip2"
+  top: "ip2"
+}
+layer {
+  name: "ip3new"
+  type: "InnerProduct"
+  bottom: "ip2"
+  top: "ip3"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 4096
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "relu4"
+  type: "ReLU"
+  bottom: "ip3"
+  top: "ip3"
+}
+layer {
+  name: "ip4new"
+  type: "InnerProduct"
+  bottom: "ip3"
+  top: "ip4"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 1000
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "ip4"
+  bottom: "label"
+  top: "loss_softmax"
+}
+layer {
+  name: "accuracy5"
+  type: "Accuracy"
+  bottom: "ip4"
+  bottom: "label"
+  top: "accuracy5"
+  accuracy_param {
+    top_k: 5
+  }
+  include {
+    phase: TEST
+  }
+}

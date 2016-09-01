@@ -1,0 +1,239 @@
+name: "ImageNet"
+layer {
+  name: "images"
+  type: "ImageData"
+  top: "data"
+  top: "label"
+  top: "box"
+  transform_param {
+    scale: 0.00390625
+  }
+  image_data_param {
+    source: "C:/Users/davle_000/PycharmProjects/ImageNet/train.txt"
+    root_folder: "C:/Users/davle_000/PycharmProjects/ImageNet/"
+    batch_size: 1
+    shuffle: true
+    window_h: 32
+    window_w: 32
+    max_windows_h: 5
+    max_windows_w: 5
+    min_scale: 0.1
+    max_scale: 0.5
+  }
+}
+layer {
+  name: "im2windows"
+  type: "Im2Windows"
+  bottom: "data"
+  bottom: "box"
+  top: "windows"
+  top: "box_label"
+  top: "clip"
+  top: "clip_w"
+  im2windows_param {
+    window_w: 32
+    window_h: 32
+    labels_count: 2
+  }
+}
+layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "windows"
+  top: "conv1"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 20
+    kernel_size: 5
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "conv2"
+  type: "Convolution"
+  bottom: "pool1"
+  top: "conv2"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  convolution_param {
+    num_output: 50
+    kernel_size: 3
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "pool2"
+  type: "Pooling"
+  bottom: "conv2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+layer {
+  name: "ip1"
+  type: "InnerProduct"
+  bottom: "pool2"
+  top: "ip1"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 500
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "relu1"
+  type: "ReLU"
+  bottom: "ip1"
+  top: "ip1"
+}
+layer {
+  name: "lstm"
+  type: "Lstm"
+  bottom: "ip1"
+  bottom: "clip"
+  bottom: "clip_w"
+  top: "lstm"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 1
+  }
+  lstm_param {
+    num_output: 2048
+    batch_size: 1
+    width: 5
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "ip2"
+  type: "InnerProduct"
+  bottom: "lstm"
+  top: "ip2"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "sigmoid"
+  type: "Sigmoid"
+  bottom: "ip2"
+  top: "ip2"
+}
+layer {
+  name: "reshape"
+  type: "Reshape"
+  bottom: "lstm"
+  top: "reshape"
+  reshape_param {
+    shape {
+      dim: 1
+      dim: 25
+      dim: 2048
+    }
+  }
+}
+layer {
+  name: "ip3"
+  type: "InnerProduct"
+  bottom: "reshape"
+  top: "ip3"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+layer {
+  name: "EuclidianLoss"
+  type: "EuclideanLoss"
+  bottom: "ip2"
+  bottom: "box_label"
+  top: "loss_euclidiean"
+}
+layer {
+  name: "loss"
+  type: "SoftmaxWithLoss"
+  bottom: "ip3"
+  bottom: "label"
+  top: "loss_softmax"
+}

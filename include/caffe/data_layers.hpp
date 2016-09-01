@@ -55,7 +55,7 @@ class BaseDataLayer : public Layer<Dtype> {
 template <typename Dtype>
 class Batch {
  public:
-  Blob<Dtype> data_, label_;
+  Blob<Dtype> data_, label_, box_;
 };
 
 template <typename Dtype>
@@ -245,15 +245,24 @@ class ImageDataLayer : public BasePrefetchingDataLayer<Dtype> {
 
   virtual inline const char* type() const { return "ImageData"; }
   virtual inline int ExactNumBottomBlobs() const { return 0; }
-  virtual inline int ExactNumTopBlobs() const { return 2; }
+  virtual inline int ExactNumTopBlobs() const { return 3; }
 
  protected:
+	 struct LineInfo {
+		 int label;
+		 int ymin;
+		 int xmin;
+		 int ymax;
+		 int xmax;
+	 };
   shared_ptr<Caffe::RNG> prefetch_rng_;
   virtual void ShuffleImages();
   virtual void load_batch(Batch<Dtype>* batch);
 
-  vector<std::pair<std::string, int> > lines_;
+  vector<std::pair<std::string, LineInfo> > lines_;
   int lines_id_;
+  int height_, width_, window_h_, window_w_, max_windows_h_, max_windows_w_;
+  float min_scale_, max_scale_;
 };
 
 /**
